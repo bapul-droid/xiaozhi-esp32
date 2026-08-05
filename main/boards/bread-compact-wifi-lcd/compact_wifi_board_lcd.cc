@@ -8,7 +8,7 @@
 #include "mcp_server.h"
 #include "lamp_controller.h"
 #include "led/single_led.h"
-
+#include "genius_client/genius_client.h"
 #include <esp_log.h>
 #include <driver/i2c_master.h>
 #include <esp_lcd_panel_vendor.h>
@@ -129,6 +129,15 @@ private:
         auto& app = Application::GetInstance();
         app.ToggleChatState();
     });
+
+boot_button_.OnDoubleClick([this]() {
+    ESP_LOGI(
+        TAG,
+        "BOOT double click - stopping media"
+    );
+
+    GeniusClient::GetInstance().StopAudio();
+});
 
     boot_button_.OnLongPress([this]() {
         ESP_LOGI(

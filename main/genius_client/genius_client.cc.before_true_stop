@@ -533,7 +533,9 @@ void GeniusClient::HandleCommand(
     } else if (
         strcmp(action_text, "stop_audio") == 0
     ) {
-        StopAudio();
+        Application::GetInstance()
+            .GetAudioService()
+            .ResetDecoder();
 
         ESP_LOGI(TAG, "Audio stop requested");
 
@@ -553,23 +555,11 @@ void GeniusClient::HandleCommand(
 
 void GeniusClient::StopAudio()
 {
-    if (audio_task_handle_ == nullptr) {
-        ESP_LOGI(TAG, "No media playback to stop");
-
-        Application::GetInstance()
-            .GetAudioService()
-            .ResetDecoder();
-
-        return;
-    }
-
-    audio_stop_requested_.store(true);
-
     Application::GetInstance()
         .GetAudioService()
         .ResetDecoder();
 
-    ESP_LOGI(TAG, "Audio stop requested");
+    ESP_LOGI(TAG, "Audio stopped by MCP");
 }
 
 
@@ -581,8 +571,6 @@ void GeniusClient::PlayRadio(
         ESP_LOGW(TAG, "Audio playback is already running");
         return;
     }
-
-    audio_stop_requested_.store(false);
 
     auto* args = new LocalAudioTaskArgs{
         this,
@@ -622,8 +610,6 @@ void GeniusClient::StartLocalAudio(
         );
         return;
     }
-
-    audio_stop_requested_.store(false);
 
     auto* args = new LocalAudioTaskArgs{
         this,
@@ -689,20 +675,12 @@ void GeniusClient::AudioTaskEntry(void* arg)
     AudioStreamClient audio_client;
 
     const bool success =
-        audio_client.Download(
-            url,
-            client->audio_stop_requested_
-        );
-
-    const bool was_stopped =
-        client->audio_stop_requested_.load();
+        audio_client.Download(url);
 
     ESP_LOGI(
         TAG,
         "Audio playback finished: %s",
-        was_stopped
-            ? "stopped"
-            : (success ? "success" : "failed")
+        success ? "success" : "failed"
     );
 
     client->audio_task_handle_ = nullptr;
