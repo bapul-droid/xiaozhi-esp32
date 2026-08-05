@@ -25,8 +25,7 @@ constexpr int AUDIO_HTTP_CONNECTION_ID = 1;
 
 
 bool AudioStreamClient::Download(
-    const std::string& url,
-    const std::atomic<bool>& stop_requested
+    const std::string& url
 ) {
 ESP_LOGI(
     TAG,
@@ -141,8 +140,7 @@ ESP_LOGI(
             &audio_service,
             &timestamp,
             &opus_packet_count,
-            &queue_error,
-            &stop_requested
+            &queue_error
         ](
             const uint8_t* data,
 int /* sample_rate */,
@@ -151,8 +149,7 @@ size_t length
             if (
                 data == nullptr ||
                 length == 0 ||
-                queue_error ||
-                stop_requested.load()
+                queue_error
             ) {
                 return;
             }
@@ -206,10 +203,7 @@ packet->frame_duration = 60;
     std::vector<uint8_t> buffer(READ_BUFFER_SIZE);
     size_t total_bytes = 0;
 
-    while (
-        !queue_error &&
-        !stop_requested.load()
-    ) {
+    while (!queue_error) {
         const int bytes_read =
             http->Read(
                 reinterpret_cast<char*>(
@@ -232,14 +226,6 @@ packet->frame_duration = 60;
         }
 
         if (bytes_read == 0) {
-            break;
-        }
-
-        if (stop_requested.load()) {
-            ESP_LOGI(
-                TAG,
-                "Stop requested while reading stream"
-            );
             break;
         }
 
@@ -276,13 +262,6 @@ packet->frame_duration = 60;
 
     http->Close();
 
-    if (stop_requested.load()) {
-        ESP_LOGI(
-            TAG,
-            "Audio stream stopped by request"
-        );
-    }
-
     ESP_LOGI(
         TAG,
         "Audio stream finished: "
@@ -294,7 +273,6 @@ packet->frame_duration = 60;
     );
 
     return (
-        !stop_requested.load() &&
         !queue_error &&
         opus_packet_count > 0
     );
