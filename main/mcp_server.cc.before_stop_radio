@@ -200,50 +200,6 @@ void McpServer::AddUserOnlyTools() {
         }
     );
 
-
-    AddTool(
-        "self.media.stop",
-        "Stop the currently playing song or radio on this device. "
-        "Use this tool when the user says stop, berhenti, matikan musik, or matikan radio.",
-        PropertyList(),
-        [](const PropertyList& properties) -> ReturnValue {
-            ESP_LOGI(TAG, "MCP stop requested");
-
-            GeniusClient::GetInstance()
-                .StopAudio();
-
-            return true;
-        }
-    );
-
-    AddTool(
-        "self.media.play_radio",
-        "Play an internet radio station on this device. "
-        "Use this tool when the user asks to play or turn on a radio station.",
-        PropertyList({
-            Property(
-                "station_id",
-                kPropertyTypeString,
-                "Radio station identifier, for example prambors"
-            )
-        }),
-        [](const PropertyList& properties) -> ReturnValue {
-            const std::string station_id =
-                properties["station_id"].value<std::string>();
-
-            ESP_LOGI(
-                TAG,
-                "MCP play_radio requested: %s",
-                station_id.c_str()
-            );
-
-            GeniusClient::GetInstance()
-                .PlayRadio(station_id);
-
-            return true;
-        }
-    );
-
     // Display control
 #ifdef HAVE_LVGL
     auto display = dynamic_cast<LvglDisplay*>(Board::GetInstance().GetDisplay());
