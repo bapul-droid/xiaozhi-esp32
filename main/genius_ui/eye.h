@@ -16,7 +16,9 @@ public:
     static void LookRight();
 
     static void LookCenter();
-
+static void SetListening(
+    bool listening
+);
 private:
     static void SetClosed(bool closed);
 };

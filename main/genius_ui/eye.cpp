@@ -475,3 +475,47 @@ void Eye::LookCenter()
 {
     AlignEyes(0);
 }
+
+void Eye::SetListening(
+    bool listening
+)
+{
+    if (
+        left_eye == nullptr ||
+        right_eye == nullptr
+    ) {
+        return;
+    }
+
+    if (listening) {
+        SetClosedState(false);
+
+        lv_obj_set_size(
+            left_eye,
+            45,
+            45
+        );
+
+        lv_obj_set_size(
+            right_eye,
+            45,
+            45
+        );
+
+        AlignEyes(0);
+    } else {
+        lv_obj_set_size(
+            left_eye,
+            kEyeSize,
+            kEyeSize
+        );
+
+        lv_obj_set_size(
+            right_eye,
+            kEyeSize,
+            kEyeSize
+        );
+
+        AlignEyes(0);
+    }
+}

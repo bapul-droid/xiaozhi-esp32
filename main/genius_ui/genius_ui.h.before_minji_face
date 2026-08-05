@@ -1,0 +1,23 @@
+#pragma once
+
+#include "lvgl.h"
+
+
+class GeniusUI {
+public:
+    enum class Emotion {
+        Idle,
+        Listening,
+        Speaking,
+        Sleep,
+        Error,
+    };
+
+    static void Init(
+        lv_obj_t* screen
+    );
+
+    static void SetEmotion(
+        Emotion emotion
+    );
+};
