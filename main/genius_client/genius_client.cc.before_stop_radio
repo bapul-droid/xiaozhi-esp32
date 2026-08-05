@@ -1,0 +1,633 @@
+#include "genius_client.h"
+
+#include "boards/common/board.h"
+#include "system_info.h"
+
+#include <cJSON.h>
+#include <esp_app_desc.h>
+#include <esp_log.h>
+
+#include <algorithm>
+#include <cctype>
+#include <utility>
+#include <cstring>
+#include "audio_stream_client.h"
+#include "application.h"
+
+
+namespace {
+
+constexpr const char* TAG = "GeniusClient";
+
+// Alamat PC GeniusAI Core di jaringan rumah.
+constexpr const char* GENIUS_SERVER_URL =
+    "http://192.168.1.11:8000";
+
+constexpr uint32_t REGISTER_RETRY_MS = 10000;
+constexpr uint32_t HEARTBEAT_INTERVAL_MS = 30000;
+constexpr uint32_t COMMAND_POLL_INTERVAL_MS = 2000;
+
+}  // namespace
+
+struct LocalAudioTaskArgs {
+    GeniusClient* client;
+    std::string filename;
+};
+GeniusClient& GeniusClient::GetInstance()
+{
+    static GeniusClient instance;
+    return instance;
+}
+
+
+void GeniusClient::Start()
+{
+    // Jangan membuat task kedua saat Wi-Fi reconnect.
+    if (task_handle_ != nullptr) {
+        ESP_LOGI(TAG, "Genius Client task already running");
+        return;
+    }
+
+    BaseType_t result = xTaskCreate(
+        TaskEntry,
+        "genius_client",
+        6144,
+        this,
+        2,
+        &task_handle_
+    );
+
+    if (result != pdPASS) {
+        task_handle_ = nullptr;
+        ESP_LOGE(TAG, "Failed to create Genius Client task");
+        return;
+    }
+
+    ESP_LOGI(TAG, "Genius Client task started");
+}
+
+
+void GeniusClient::TaskEntry(void* arg)
+{
+    auto* client = static_cast<GeniusClient*>(arg);
+
+    client->Run();
+
+    client->task_handle_ = nullptr;
+    vTaskDelete(nullptr);
+}
+
+
+void GeniusClient::Run()
+{
+    TickType_t last_heartbeat_tick = 0;
+
+    while (true) {
+        if (!registered_) {
+            registered_ = RegisterDevice();
+
+            if (!registered_) {
+                ESP_LOGW(
+                    TAG,
+                    "Registration failed, retrying in %lu ms",
+                    static_cast<unsigned long>(REGISTER_RETRY_MS)
+                );
+
+                vTaskDelay(
+                    pdMS_TO_TICKS(REGISTER_RETRY_MS)
+                );
+
+                continue;
+            }
+
+            last_heartbeat_tick = 0;
+        }
+
+        const TickType_t now = xTaskGetTickCount();
+
+        if (
+            last_heartbeat_tick == 0 ||
+            now - last_heartbeat_tick >=
+                pdMS_TO_TICKS(HEARTBEAT_INTERVAL_MS)
+        ) {
+            if (!SendHeartbeat()) {
+                ESP_LOGW(TAG, "Heartbeat failed");
+            }
+
+            last_heartbeat_tick = now;
+        }
+
+        if (audio_task_handle_ == nullptr) {
+            FetchNextCommand();
+        }
+
+        vTaskDelay(
+            pdMS_TO_TICKS(COMMAND_POLL_INTERVAL_MS)
+        );
+    }
+}
+
+std::string GeniusClient::BuildDeviceId() const
+{
+    std::string mac = SystemInfo::GetMacAddress();
+
+    mac.erase(
+        std::remove(mac.begin(), mac.end(), ':'),
+        mac.end()
+    );
+
+    std::transform(
+        mac.begin(),
+        mac.end(),
+        mac.begin(),
+        [](unsigned char character) {
+            return static_cast<char>(
+                std::tolower(character)
+            );
+        }
+    );
+
+    // Contoh: genius-e83dc1f1bf34
+    return "genius-" + mac;
+}
+
+
+bool GeniusClient::RegisterDevice()
+{
+    const std::string device_id = BuildDeviceId();
+    const std::string mac_address =
+        SystemInfo::GetMacAddress();
+
+    const esp_app_desc_t* app_description =
+        esp_app_get_description();
+
+    cJSON* root = cJSON_CreateObject();
+
+    if (root == nullptr) {
+        ESP_LOGE(TAG, "Failed to create registration JSON");
+        return false;
+    }
+
+    cJSON_AddStringToObject(
+        root,
+        "device_id",
+        device_id.c_str()
+    );
+
+    cJSON_AddStringToObject(
+        root,
+        "mac_address",
+        mac_address.c_str()
+    );
+
+    cJSON_AddStringToObject(
+        root,
+        "name",
+        "Genius Ruang Tamu"
+    );
+
+    cJSON_AddStringToObject(
+        root,
+        "board",
+        BOARD_NAME
+    );
+
+    cJSON_AddStringToObject(
+        root,
+        "firmware_version",
+        app_description->version
+    );
+
+    char* json_text =
+        cJSON_PrintUnformatted(root);
+
+    cJSON_Delete(root);
+
+    if (json_text == nullptr) {
+        ESP_LOGE(TAG, "Failed to serialize registration JSON");
+        return false;
+    }
+
+    std::string json_body(json_text);
+    cJSON_free(json_text);
+
+    const bool success = PostJson(
+        "/api/devices/register",
+        json_body
+    );
+
+    if (success) {
+        ESP_LOGI(
+            TAG,
+            "Device registered: %s",
+            device_id.c_str()
+        );
+    }
+
+    return success;
+}
+
+
+bool GeniusClient::SendHeartbeat()
+{
+    const std::string device_id = BuildDeviceId();
+
+    cJSON* root = cJSON_CreateObject();
+
+    if (root == nullptr) {
+        ESP_LOGE(TAG, "Failed to create heartbeat JSON");
+        return false;
+    }
+
+    cJSON_AddStringToObject(
+        root,
+        "device_id",
+        device_id.c_str()
+    );
+
+    cJSON_AddStringToObject(
+        root,
+        "state",
+        "idle"
+    );
+
+    // Volume sementara. Nanti dibaca dari audio codec asli.
+    cJSON_AddNumberToObject(
+        root,
+        "volume",
+        70
+    );
+
+    char* json_text =
+        cJSON_PrintUnformatted(root);
+
+    cJSON_Delete(root);
+
+    if (json_text == nullptr) {
+        ESP_LOGE(TAG, "Failed to serialize heartbeat JSON");
+        return false;
+    }
+
+    std::string json_body(json_text);
+    cJSON_free(json_text);
+
+    const bool success = PostJson(
+        "/api/devices/heartbeat",
+        json_body
+    );
+
+    if (success) {
+        ESP_LOGI(TAG, "Heartbeat sent successfully");
+    }
+
+    return success;
+}
+
+
+bool GeniusClient::PostJson(
+    const std::string& endpoint,
+    const std::string& json_body
+)
+{
+    auto network =
+        Board::GetInstance().GetNetwork();
+
+    if (network == nullptr) {
+        ESP_LOGE(TAG, "Network interface is unavailable");
+        return false;
+    }
+
+    auto http = network->CreateHttp(3);
+
+    if (http == nullptr) {
+        ESP_LOGE(TAG, "Failed to create HTTP client");
+        return false;
+    }
+
+    const std::string url =
+        std::string(GENIUS_SERVER_URL) + endpoint;
+
+    http->SetHeader(
+        "Content-Type",
+        "application/json"
+    );
+
+    http->SetHeader(
+        "User-Agent",
+        "GeniusAI-ESP32/0.1"
+    );
+
+    http->SetContent(
+        std::string(json_body)
+    );
+
+    ESP_LOGI(TAG, "POST %s", url.c_str());
+
+    if (!http->Open("POST", url)) {
+        ESP_LOGE(
+            TAG,
+            "Failed to connect to GeniusAI Core, error=0x%x",
+            http->GetLastError()
+        );
+
+        return false;
+    }
+
+    const int status_code =
+        http->GetStatusCode();
+
+    const std::string response_body =
+        http->ReadAll();
+
+    http->Close();
+
+    if (status_code < 200 || status_code >= 300) {
+        ESP_LOGE(
+            TAG,
+            "HTTP %d: %s",
+            status_code,
+            response_body.c_str()
+        );
+
+        return false;
+    }
+
+    ESP_LOGI(
+        TAG,
+        "HTTP %d: %s",
+        status_code,
+        response_body.c_str()
+    );
+
+    return true;
+}
+
+bool GeniusClient::GetJson(
+    const std::string& endpoint,
+    std::string& response_body
+)
+{
+    auto network =
+        Board::GetInstance().GetNetwork();
+
+    if (network == nullptr) {
+        ESP_LOGE(TAG, "Network interface is unavailable");
+        return false;
+    }
+
+    auto http = network->CreateHttp(3);
+
+    if (http == nullptr) {
+        ESP_LOGE(TAG, "Failed to create HTTP client");
+        return false;
+    }
+
+    const std::string url =
+        std::string(GENIUS_SERVER_URL) + endpoint;
+
+    http->SetHeader(
+        "Accept",
+        "application/json"
+    );
+
+    http->SetHeader(
+        "User-Agent",
+        "GeniusAI-ESP32/0.1"
+    );
+
+    if (!http->Open("GET", url)) {
+        ESP_LOGW(
+            TAG,
+            "GET failed: %s, error=0x%x",
+            url.c_str(),
+            http->GetLastError()
+        );
+
+        return false;
+    }
+
+    const int status_code =
+        http->GetStatusCode();
+
+    response_body = http->ReadAll();
+    http->Close();
+
+    if (status_code < 200 || status_code >= 300) {
+        ESP_LOGW(
+            TAG,
+            "GET HTTP %d: %s",
+            status_code,
+            response_body.c_str()
+        );
+
+        return false;
+    }
+
+    return true;
+}
+
+bool GeniusClient::FetchNextCommand()
+{
+    const std::string endpoint =
+        "/api/devices/" +
+        BuildDeviceId() +
+        "/commands/next";
+
+    std::string response_body;
+
+    if (!GetJson(endpoint, response_body)) {
+        return false;
+    }
+
+    HandleCommand(response_body);
+    return true;
+}
+void GeniusClient::HandleCommand(
+    const std::string& response_body
+)
+{
+    cJSON* root =
+        cJSON_Parse(response_body.c_str());
+
+    if (root == nullptr) {
+        ESP_LOGW(
+            TAG,
+            "Invalid command JSON: %s",
+            response_body.c_str()
+        );
+        return;
+    }
+
+    cJSON* command =
+        cJSON_GetObjectItem(root, "command");
+
+    if (
+        command == nullptr ||
+        cJSON_IsNull(command)
+    ) {
+        cJSON_Delete(root);
+        return;
+    }
+
+    cJSON* command_id =
+        cJSON_GetObjectItem(command, "command_id");
+
+    cJSON* action =
+        cJSON_GetObjectItem(command, "action");
+
+    cJSON* payload =
+        cJSON_GetObjectItem(command, "payload");
+
+    if (!cJSON_IsString(action)) {
+        ESP_LOGW(TAG, "Command action is missing");
+        cJSON_Delete(root);
+        return;
+    }
+
+    const char* action_text =
+        action->valuestring;
+
+    ESP_LOGI(
+        TAG,
+        "Command received: id=%s, action=%s",
+        cJSON_IsString(command_id)
+            ? command_id->valuestring
+            : "unknown",
+        action_text
+    );
+
+    if (strcmp(action_text, "notify") == 0) {
+        cJSON* message = payload
+            ? cJSON_GetObjectItem(payload, "message")
+            : nullptr;
+
+        if (cJSON_IsString(message)) {
+            ESP_LOGI(
+                TAG,
+                "Notification: %s",
+                message->valuestring
+            );
+        } else {
+            ESP_LOGW(
+                TAG,
+                "Notify command has no message"
+            );
+        }
+
+    } else if (
+        strcmp(action_text, "play_local") == 0
+    ) {
+        cJSON* track = payload
+            ? cJSON_GetObjectItem(payload, "track")
+            : nullptr;
+
+        if (!cJSON_IsString(track)) {
+            ESP_LOGW(
+                TAG,
+                "play_local command has no track"
+            );
+        } else {
+            StartLocalAudio(track->valuestring);
+        }
+
+    } else if (
+        strcmp(action_text, "stop_audio") == 0
+    ) {
+        Application::GetInstance()
+            .GetAudioService()
+            .ResetDecoder();
+
+        ESP_LOGI(TAG, "Audio stop requested");
+
+    } else {
+        ESP_LOGW(
+            TAG,
+            "Unsupported command: %s",
+            action_text
+        );
+    }
+
+    cJSON_Delete(root);
+}
+
+
+void GeniusClient::StartLocalAudio(
+    const std::string& filename
+)
+{
+    ESP_LOGI(
+        TAG,
+        "StartLocalAudio(): %s",
+        filename.c_str()
+    );
+
+    if (audio_task_handle_ != nullptr) {
+        ESP_LOGW(
+            TAG,
+            "Audio playback is already running"
+        );
+        return;
+    }
+
+    auto* args = new LocalAudioTaskArgs{
+        this,
+        filename,
+    };
+
+    BaseType_t result = xTaskCreate(
+        AudioTaskEntry,
+        "genius_audio",
+        12288,
+        args,
+        3,
+        &audio_task_handle_
+    );
+
+    if (result != pdPASS) {
+        audio_task_handle_ = nullptr;
+        delete args;
+
+        ESP_LOGE(
+            TAG,
+            "Failed to create audio playback task"
+        );
+    }
+}
+
+
+void GeniusClient::AudioTaskEntry(void* arg)
+{
+    auto* args =
+        static_cast<LocalAudioTaskArgs*>(arg);
+
+    GeniusClient* client = args->client;
+    std::string filename = args->filename;
+
+    delete args;
+
+    ESP_LOGI(
+        TAG,
+        "Audio task started: %s",
+        filename.c_str()
+    );
+
+    const std::string url =
+        std::string(GENIUS_SERVER_URL) +
+        "/api/audio/local/" +
+        filename;
+
+    AudioStreamClient audio_client;
+
+    const bool success =
+        audio_client.Download(url);
+
+    ESP_LOGI(
+        TAG,
+        "Audio playback finished: %s",
+        success ? "success" : "failed"
+    );
+
+    client->audio_task_handle_ = nullptr;
+
+    vTaskDelete(nullptr);
+}

@@ -1,0 +1,140 @@
+#include "eye.h"
+
+namespace {
+
+lv_obj_t* left_eye = nullptr;
+lv_obj_t* right_eye = nullptr;
+lv_timer_t* blink_timer = nullptr;
+bool eyes_closed = false;
+
+constexpr int kEyeWidth = 28;
+constexpr int kEyeHeight = 42;
+constexpr int kEyeClosedHeight = 4;
+constexpr int kEyeOffsetX = 22;
+constexpr uint32_t kBlinkOpenTimeMs = 3200;
+constexpr uint32_t kBlinkClosedTimeMs = 130;
+
+void SetEyesSize(int width, int height)
+{
+    if (left_eye == nullptr || right_eye == nullptr) {
+        return;
+    }
+
+    lv_obj_set_size(left_eye, width, height);
+    lv_obj_set_size(right_eye, width, height);
+}
+
+void BlinkTimerCallback(lv_timer_t* timer)
+{
+    if (left_eye == nullptr || right_eye == nullptr) {
+        return;
+    }
+
+    if (!eyes_closed) {
+        eyes_closed = true;
+        SetEyesSize(kEyeWidth, kEyeClosedHeight);
+        lv_timer_set_period(timer, kBlinkClosedTimeMs);
+    } else {
+        eyes_closed = false;
+        SetEyesSize(kEyeWidth, kEyeHeight);
+        lv_timer_set_period(timer, kBlinkOpenTimeMs);
+    }
+}
+
+void ConfigureEye(lv_obj_t* eye)
+{
+    lv_obj_remove_style_all(eye);
+    lv_obj_set_size(eye, kEyeWidth, kEyeHeight);
+    lv_obj_set_style_radius(eye, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(eye, lv_color_white(), 0);
+    lv_obj_set_style_bg_opa(eye, LV_OPA_COVER, 0);
+    lv_obj_remove_flag(eye, LV_OBJ_FLAG_SCROLLABLE);
+}
+
+}  // namespace
+
+void Eye::Create(lv_obj_t* parent)
+{
+    if (parent == nullptr) {
+        return;
+    }
+
+   if (left_eye != nullptr && lv_obj_is_valid(left_eye)) {
+    lv_obj_delete(left_eye);
+}
+
+if (right_eye != nullptr && lv_obj_is_valid(right_eye)) {
+    lv_obj_delete(right_eye);
+}
+
+left_eye = nullptr;
+right_eye = nullptr;
+
+    left_eye = lv_obj_create(parent);
+    right_eye = lv_obj_create(parent);
+
+    ConfigureEye(left_eye);
+    ConfigureEye(right_eye);
+
+    lv_obj_align(left_eye, LV_ALIGN_CENTER, -kEyeOffsetX, 0);
+    lv_obj_align(right_eye, LV_ALIGN_CENTER, kEyeOffsetX, 0);
+
+    blink_timer = lv_timer_create(
+        BlinkTimerCallback,
+        kBlinkOpenTimeMs,
+        nullptr
+    );
+}
+
+void Eye::Blink()
+{
+    if (left_eye == nullptr || right_eye == nullptr) {
+        return;
+    }
+
+    SetEyesSize(kEyeWidth, kEyeClosedHeight);
+    eyes_closed = true;
+}
+
+void Eye::Talk(bool enable)
+{
+    if (left_eye == nullptr || right_eye == nullptr) {
+        return;
+    }
+
+    if (enable) {
+        SetEyesSize(32, 34);
+    } else {
+        SetEyesSize(kEyeWidth, kEyeHeight);
+    }
+}
+
+void Eye::LookLeft()
+{
+    if (left_eye == nullptr || right_eye == nullptr) {
+        return;
+    }
+
+    lv_obj_align(left_eye, LV_ALIGN_CENTER, -30, 0);
+    lv_obj_align(right_eye, LV_ALIGN_CENTER, 14, 0);
+}
+
+void Eye::LookRight()
+{
+    if (left_eye == nullptr || right_eye == nullptr) {
+        return;
+    }
+
+    lv_obj_align(left_eye, LV_ALIGN_CENTER, -14, 0);
+    lv_obj_align(right_eye, LV_ALIGN_CENTER, 30, 0);
+}
+
+void Eye::LookCenter()
+{
+    if (left_eye == nullptr || right_eye == nullptr) {
+        return;
+    }
+
+    lv_obj_align(left_eye, LV_ALIGN_CENTER, -kEyeOffsetX, 0);
+    lv_obj_align(right_eye, LV_ALIGN_CENTER, kEyeOffsetX, 0);
+}

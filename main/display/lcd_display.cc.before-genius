@@ -1,5 +1,5 @@
+#include "genius_ui.h"
 #include "lcd_display.h"
-#include "genius_ui/genius_ui.h"
 #include "assets/lang_config.h"
 #include "gif/lvgl_gif.h"
 #include "lvgl_theme.h"
@@ -370,9 +370,10 @@ void LcdDisplay::SetupUI() {
     auto large_icon_font = lvgl_theme->large_icon_font()->font();
 
     auto screen = lv_screen_active();
+    GeniusUI::Init(screen);
     lv_obj_set_style_text_font(screen, text_font, 0);
     lv_obj_set_style_text_color(screen, lvgl_theme->text_color(), 0);
-    lv_obj_set_style_bg_color(screen, lvgl_theme->background_color(), 0);
+    lv_obj_set_style_bg_color(screen, lv_color_black(), 0);
 
     /* Container */
     container_ = lv_obj_create(screen);
@@ -382,7 +383,7 @@ void LcdDisplay::SetupUI() {
     lv_obj_set_style_pad_all(container_, 0, 0);
     lv_obj_set_style_border_width(container_, 0, 0);
     lv_obj_set_style_pad_row(container_, 0, 0);
-    lv_obj_set_style_bg_color(container_, lvgl_theme->background_color(), 0);
+   lv_obj_set_style_bg_color(container_, lv_color_black(), 0);
     lv_obj_set_style_border_color(container_, lvgl_theme->border_color(), 0);
 
     /* Layer 1: Top bar - for status icons */
@@ -502,9 +503,6 @@ void LcdDisplay::SetupUI() {
     lv_obj_set_style_text_font(emoji_label_, large_icon_font, 0);
     lv_obj_set_style_text_color(emoji_label_, lvgl_theme->text_color(), 0);
     lv_label_set_text(emoji_label_, MATERIAL_SYMBOLS_ROBOT_2);
-
-    // Minji animated eyes overlay.
-    GeniusUI::Init(screen);
 }
 #if CONFIG_IDF_TARGET_ESP32P4
 #define MAX_MESSAGES 40
@@ -851,28 +849,153 @@ void LcdDisplay::SetupUI() {
     lv_obj_set_style_bg_color(container_, lvgl_theme->background_color(), 0);
     lv_obj_set_style_border_color(container_, lvgl_theme->border_color(), 0);
 
-    /* Bottom layer: emoji_box_ - centered display */
-    emoji_box_ = lv_obj_create(screen);
-    lv_obj_set_size(emoji_box_, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-    lv_obj_set_style_bg_opa(emoji_box_, LV_OPA_TRANSP, 0);
-    lv_obj_set_style_pad_all(emoji_box_, 0, 0);
-    lv_obj_set_style_border_width(emoji_box_, 0, 0);
-    lv_obj_align(emoji_box_, LV_ALIGN_CENTER, 0, 0);
+    /* Custom eyes container */
+emoji_box_ = lv_obj_create(screen);
+lv_obj_set_size(emoji_box_, 100, 50);
+lv_obj_set_style_bg_opa(emoji_box_, LV_OPA_TRANSP, 0);
+lv_obj_set_style_pad_all(emoji_box_, 0, 0);
+lv_obj_set_style_border_width(emoji_box_, 0, 0);
+lv_obj_align(emoji_box_, LV_ALIGN_CENTER, 0, 0);
+lv_obj_remove_flag(emoji_box_, LV_OBJ_FLAG_SCROLLABLE);
 
-    emoji_label_ = lv_label_create(emoji_box_);
-    lv_obj_set_style_text_font(emoji_label_, large_icon_font, 0);
-    lv_obj_set_style_text_color(emoji_label_, lvgl_theme->text_color(), 0);
-    lv_label_set_text(emoji_label_, MATERIAL_SYMBOLS_ROBOT_2);
+/* Left oval eye */
+left_eye_ = lv_obj_create(emoji_box_);
+lv_obj_remove_style_all(left_eye_);
+lv_obj_set_size(left_eye_, eye_open_width_, eye_open_height_);
+lv_obj_set_style_radius(left_eye_, LV_RADIUS_CIRCLE, 0);
+lv_obj_set_style_bg_color(left_eye_, lv_color_white(), 0);
+lv_obj_set_style_bg_opa(left_eye_, LV_OPA_COVER, 0);
+lv_obj_align(left_eye_, LV_ALIGN_CENTER, -23, 0);
 
-    emoji_image_ = lv_img_create(emoji_box_);
-    lv_obj_center(emoji_image_);
-    lv_obj_add_flag(emoji_image_, LV_OBJ_FLAG_HIDDEN);
+/* Right oval eye */
+right_eye_ = lv_obj_create(emoji_box_);
+lv_obj_remove_style_all(right_eye_);
+lv_obj_set_size(right_eye_, eye_open_width_, eye_open_height_);
+lv_obj_set_style_radius(right_eye_, LV_RADIUS_CIRCLE, 0);
+lv_obj_set_style_bg_color(right_eye_, lv_color_white(), 0);
+lv_obj_set_style_bg_opa(right_eye_, LV_OPA_COVER, 0);
+lv_obj_align(right_eye_, LV_ALIGN_CENTER, 23, 0);
 
-    /* Middle layer: preview_image_ - centered display */
-    preview_image_ = lv_image_create(screen);
-    lv_obj_set_size(preview_image_, width_ / 2, height_ / 2);
-    lv_obj_align(preview_image_, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_add_flag(preview_image_, LV_OBJ_FLAG_HIDDEN);
+/* Genius.AI boot screen */
+boot_label_ = lv_label_create(screen);
+lv_label_set_text(boot_label_, "GENIUS.AI");
+lv_obj_set_style_text_color(boot_label_, lv_color_white(), 0);
+lv_obj_set_style_text_font(boot_label_, text_font, 0);
+lv_obj_align(boot_label_, LV_ALIGN_CENTER, 0, -8);
+
+boot_subtitle_ = lv_label_create(screen);
+lv_label_set_text(boot_subtitle_, "Memulai...");
+lv_obj_set_style_text_color(
+    boot_subtitle_,
+    lv_color_make(150, 150, 150),
+    0
+);
+lv_obj_set_style_text_font(boot_subtitle_, text_font, 0);
+lv_obj_align(boot_subtitle_, LV_ALIGN_CENTER, 0, 18);
+
+/* Sembunyikan mata selama boot screen */
+lv_obj_add_flag(emoji_box_, LV_OBJ_FLAG_HIDDEN);
+blink_enabled_ = false;
+
+/* Setelah 2 detik, sembunyikan logo dan tampilkan mata */
+boot_timer_ = lv_timer_create(
+    [](lv_timer_t* timer) {
+        auto* self =
+            static_cast<LcdDisplay*>(lv_timer_get_user_data(timer));
+
+        if (self == nullptr) {
+            return;
+        }
+
+        if (self->boot_label_ != nullptr) {
+            lv_obj_add_flag(
+                self->boot_label_,
+                LV_OBJ_FLAG_HIDDEN
+            );
+        }
+
+        if (self->boot_subtitle_ != nullptr) {
+            lv_obj_add_flag(
+                self->boot_subtitle_,
+                LV_OBJ_FLAG_HIDDEN
+            );
+        }
+
+        if (self->emoji_box_ != nullptr) {
+            lv_obj_remove_flag(
+                self->emoji_box_,
+                LV_OBJ_FLAG_HIDDEN
+            );
+            lv_obj_move_foreground(self->emoji_box_);
+        }
+
+        self->blink_enabled_ = true;
+        self->eyes_closed_ = false;
+
+        lv_timer_delete(timer);
+        self->boot_timer_ = nullptr;
+    },
+    2000,
+    this
+);
+lv_timer_set_repeat_count(boot_timer_, 1);
+
+/* Automatic eye blinking */
+blink_timer_ = lv_timer_create(
+    [](lv_timer_t* timer) {
+        auto* self =
+            static_cast<LcdDisplay*>(lv_timer_get_user_data(timer));
+
+        if (self == nullptr ||
+            !self->blink_enabled_ ||
+            self->left_eye_ == nullptr ||
+            self->right_eye_ == nullptr) {
+            return;
+        }
+
+        if (!self->eyes_closed_) {
+            /* Close eyes */
+            self->eyes_closed_ = true;
+
+            lv_obj_set_height(self->left_eye_, 4);
+            lv_obj_set_height(self->right_eye_, 4);
+
+            lv_timer_set_period(timer, 130);
+        } else {
+            /* Open eyes */
+            self->eyes_closed_ = false;
+
+            lv_obj_set_size(
+                self->left_eye_,
+                self->eye_open_width_,
+                self->eye_open_height_
+            );
+
+            lv_obj_set_size(
+                self->right_eye_,
+                self->eye_open_width_,
+                self->eye_open_height_
+            );
+
+            lv_timer_set_period(timer, 3500);
+        }
+    },
+    3500,
+    this
+);
+
+/* Keep old pointers valid for existing SetEmotion code */
+emoji_label_ = lv_label_create(emoji_box_);
+lv_label_set_text(emoji_label_, "");
+lv_obj_add_flag(emoji_label_, LV_OBJ_FLAG_HIDDEN);
+
+emoji_image_ = lv_img_create(emoji_box_);
+lv_obj_center(emoji_image_);
+lv_obj_add_flag(emoji_image_, LV_OBJ_FLAG_HIDDEN);
+
+emoji_image_ = lv_img_create(emoji_box_);
+lv_obj_center(emoji_image_);
+lv_obj_add_flag(emoji_image_, LV_OBJ_FLAG_HIDDEN);
 
     /* Layer 1: Top bar - for status icons */
     top_bar_ = lv_obj_create(screen);
@@ -1017,9 +1140,6 @@ void LcdDisplay::SetupUI() {
     lv_obj_set_style_text_color(low_battery_label_, lv_color_white(), 0);
     lv_obj_center(low_battery_label_);
     lv_obj_add_flag(low_battery_popup_, LV_OBJ_FLAG_HIDDEN);
-
-    // Minji animated eyes overlay.
-    GeniusUI::Init(screen);
 }
 
 void LcdDisplay::SetPreviewImage(std::unique_ptr<LvglImage> image) {
@@ -1105,92 +1225,89 @@ void LcdDisplay::ClearChatMessages() {
 #endif
 
 void LcdDisplay::SetEmotion(const char* emotion) {
-    if (!setup_ui_called_) {
-        ESP_LOGW(TAG, "SetEmotion('%s') called before SetupUI() - emotion will not be displayed!",
-                 emotion);
-    }
-    if (emoji_image_ == nullptr) {
-        if (setup_ui_called_) {
-            ESP_LOGW(TAG,
-                     "SetEmotion('%s') failed: emoji_image_ is nullptr (SetupUI() was called but "
-                     "emoji image not created)",
-                     emotion);
-        }
-        return;
-    }
-
-    auto emoji_collection = static_cast<LvglTheme*>(current_theme_)->emoji_collection();
-    auto image = emoji_collection != nullptr ? emoji_collection->GetEmojiImage(emotion) : nullptr;
-    if (image == nullptr) {
-        auto lvgl_theme = static_cast<LvglTheme*>(current_theme_);
-        const char* utf8 = noto_emoji_get_utf8(emotion);
-        const lv_font_t* emotion_font = lvgl_theme->emoji_font()->font();
-        if (utf8 == nullptr) {
-            utf8 = material_symbols_get_utf8(emotion);
-            emotion_font = lvgl_theme->large_icon_font()->font();
-        }
-        if (utf8 != nullptr && emoji_label_ != nullptr) {
-            DisplayLockGuard lock(this);
-            if (gif_controller_) {
-                gif_controller_->Stop();
-                gif_controller_.reset();
-            }
-            lv_obj_set_style_text_font(emoji_label_, emotion_font, 0);
-            lv_label_set_text(emoji_label_, utf8);
-            lv_obj_add_flag(emoji_image_, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_remove_flag(emoji_label_, LV_OBJ_FLAG_HIDDEN);
-        }
+    if (!setup_ui_called_ || left_eye_ == nullptr || right_eye_ == nullptr) {
+        ESP_LOGW(TAG, "SetEmotion('%s') called before custom eyes are ready",
+                 emotion != nullptr ? emotion : "null");
         return;
     }
 
     DisplayLockGuard lock(this);
-    // Stop any running GIF animation in the same lock scope as setting new image
-    // to prevent LVGL from accessing freed image data between operations
+
+    // Matikan GIF atau emoji bawaan jika masih aktif
     if (gif_controller_) {
         gif_controller_->Stop();
         gif_controller_.reset();
     }
-    if (image->IsGif()) {
-        // Create new GIF controller
-        gif_controller_ = std::make_unique<LvglGif>(image->image_dsc());
 
-        if (gif_controller_->IsLoaded()) {
-            // Set up frame update callback
-            gif_controller_->SetFrameCallback(
-                [this]() { lv_image_set_src(emoji_image_, gif_controller_->image_dsc()); });
-
-            // Set initial frame and start animation
-            lv_image_set_src(emoji_image_, gif_controller_->image_dsc());
-            gif_controller_->Start();
-
-            // Show GIF, hide others
-            lv_obj_add_flag(emoji_label_, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_remove_flag(emoji_image_, LV_OBJ_FLAG_HIDDEN);
-        } else {
-            ESP_LOGE(TAG, "Failed to load GIF for emotion: %s", emotion);
-            gif_controller_.reset();
-        }
-    } else {
-        lv_image_set_src(emoji_image_, image->image_dsc());
+    if (emoji_label_ != nullptr) {
+        lv_label_set_text(emoji_label_, "");
         lv_obj_add_flag(emoji_label_, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_remove_flag(emoji_image_, LV_OBJ_FLAG_HIDDEN);
     }
 
-#if CONFIG_USE_WECHAT_MESSAGE_STYLE
-    // In WeChat message style, if emotion is neutral, don't display it
-    uint32_t child_count = lv_obj_get_child_cnt(content_);
-    if (strcmp(emotion, "neutral") == 0 && child_count > 0) {
-        // Stop GIF animation if running
-        if (gif_controller_) {
-            gif_controller_->Stop();
-            gif_controller_.reset();
-        }
-
+    if (emoji_image_ != nullptr) {
         lv_obj_add_flag(emoji_image_, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(emoji_label_, LV_OBJ_FLAG_HIDDEN);
     }
-#endif
+
+    // Pastikan mata selalu tampil
+    if (emoji_box_ != nullptr && boot_timer_ == nullptr) {
+    lv_obj_remove_flag(emoji_box_, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_move_foreground(emoji_box_);
 }
+
+    // Bentuk standar: mata oval putih
+    blink_enabled_ = true;
+eyes_closed_ = false;
+
+eye_open_width_ = 30;
+eye_open_height_ = 42;
+
+lv_obj_set_size(left_eye_, eye_open_width_, eye_open_height_);
+lv_obj_set_size(right_eye_, eye_open_width_, eye_open_height_);
+
+    lv_obj_set_style_radius(left_eye_, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_radius(right_eye_, LV_RADIUS_CIRCLE, 0);
+
+    lv_obj_set_style_bg_color(left_eye_, lv_color_white(), 0);
+    lv_obj_set_style_bg_color(right_eye_, lv_color_white(), 0);
+
+    lv_obj_set_style_bg_opa(left_eye_, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_opa(right_eye_, LV_OPA_COVER, 0);
+
+    // Ekspresi tidur: mata menjadi garis tipis
+if (emotion != nullptr &&
+    (strcmp(emotion, "sleepy") == 0 ||
+     strcmp(emotion, "sleep") == 0)) {
+
+    blink_enabled_ = false;
+    eyes_closed_ = true;
+
+    lv_obj_set_size(left_eye_, 34, 4);
+    lv_obj_set_size(right_eye_, 34, 4);
+}
+    // Ekspresi terkejut: mata lebih besar
+   else if (emotion != nullptr &&
+         (strcmp(emotion, "surprised") == 0 ||
+          strcmp(emotion, "shocked") == 0)) {
+
+    eye_open_width_ = 34;
+    eye_open_height_ = 48;
+
+    lv_obj_set_size(left_eye_, eye_open_width_, eye_open_height_);
+    lv_obj_set_size(right_eye_, eye_open_width_, eye_open_height_);
+}
+
+    // Ekspresi senang: mata sedikit menyipit
+   else if (emotion != nullptr &&
+         (strcmp(emotion, "happy") == 0 ||
+          strcmp(emotion, "laughing") == 0)) {
+
+    eye_open_width_ = 32;
+    eye_open_height_ = 18;
+
+    lv_obj_set_size(left_eye_, eye_open_width_, eye_open_height_);
+    lv_obj_set_size(right_eye_, eye_open_width_, eye_open_height_);
+}
+}  // penutup SetEmotion()
 
 void LcdDisplay::SetTheme(Theme* theme) {
     DisplayLockGuard lock(this);
@@ -1220,12 +1337,12 @@ void LcdDisplay::SetTheme(Theme* theme) {
     lv_obj_set_style_text_color(screen, lvgl_theme->text_color(), 0);
 
     // Set background image
-    if (lvgl_theme->background_image() != nullptr) {
-        lv_obj_set_style_bg_image_src(container_, lvgl_theme->background_image()->image_dsc(), 0);
-    } else {
-        lv_obj_set_style_bg_image_src(container_, nullptr, 0);
-        lv_obj_set_style_bg_color(container_, lvgl_theme->background_color(), 0);
-    }
+    /* Genius.AI custom background: always black */
+lv_obj_set_style_bg_image_src(container_, nullptr, 0);
+lv_obj_set_style_bg_color(container_, lv_color_black(), 0);
+lv_obj_set_style_bg_opa(container_, LV_OPA_COVER, 0);
+lv_obj_set_style_bg_color(screen, lv_color_black(), 0);
+lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, 0);
 
     // Update top bar background color with 50% opacity
     if (top_bar_ != nullptr) {
@@ -1328,7 +1445,46 @@ void LcdDisplay::SetTheme(Theme* theme) {
         lv_obj_set_style_bg_color(bottom_bar_, lvgl_theme->background_color(), 0);
     }
 #endif
+/* Hide original XiaoZhi UI */
+if (top_bar_ != nullptr) {
+    lv_obj_add_flag(top_bar_, LV_OBJ_FLAG_HIDDEN);
+}
+/* Keep custom oval eyes visible */
+if (emoji_box_ != nullptr) {
+    lv_obj_remove_flag(emoji_box_, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_move_foreground(emoji_box_);
+}
 
+if (left_eye_ != nullptr) {
+    lv_obj_set_style_bg_color(left_eye_, lv_color_white(), 0);
+    lv_obj_set_style_bg_opa(left_eye_, LV_OPA_COVER, 0);
+    lv_obj_remove_flag(left_eye_, LV_OBJ_FLAG_HIDDEN);
+}
+
+if (right_eye_ != nullptr) {
+    lv_obj_set_style_bg_color(right_eye_, lv_color_white(), 0);
+    lv_obj_set_style_bg_opa(right_eye_, LV_OPA_COVER, 0);
+    lv_obj_remove_flag(right_eye_, LV_OBJ_FLAG_HIDDEN);
+}
+if (status_bar_ != nullptr) {
+    lv_obj_add_flag(status_bar_, LV_OBJ_FLAG_HIDDEN);
+}
+
+if (bottom_bar_ != nullptr) {
+    lv_obj_add_flag(bottom_bar_, LV_OBJ_FLAG_HIDDEN);
+}
+
+if (preview_image_ != nullptr) {
+    lv_obj_add_flag(preview_image_, LV_OBJ_FLAG_HIDDEN);
+}
+
+if (emoji_label_ != nullptr) {
+    lv_obj_add_flag(emoji_label_, LV_OBJ_FLAG_HIDDEN);
+}
+
+if (emoji_image_ != nullptr) {
+    lv_obj_add_flag(emoji_image_, LV_OBJ_FLAG_HIDDEN);
+}
     // Update low battery popup
     lv_obj_set_style_bg_color(low_battery_popup_, lvgl_theme->low_battery_color(), 0);
 

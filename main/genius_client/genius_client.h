@@ -1,0 +1,66 @@
+#ifndef GENIUS_CLIENT_H
+#define GENIUS_CLIENT_H
+
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include "audio_stream_client.h"
+
+#include <string>
+
+class GeniusClient {
+public:
+    static GeniusClient& GetInstance();
+
+    // Aman dipanggil kembali setelah Wi-Fi reconnect.
+    void Start();
+
+    // Dipanggil oleh MCP tool untuk memutar musik lokal.
+    void PlayLocal(
+        const std::string& filename
+    ) {
+        StartLocalAudio(filename);
+    }
+
+    void StopAudio();
+
+    void PlayRadio(
+        const std::string& station_id
+    );
+
+
+private:
+    GeniusClient() = default;
+    GeniusClient(const GeniusClient&) = delete;
+    GeniusClient& operator=(const GeniusClient&) = delete;
+
+    static void TaskEntry(void* arg);
+    void Run();
+    static void AudioTaskEntry(void* arg);
+
+    void StartLocalAudio(
+        const std::string& filename
+    );
+    bool RegisterDevice();
+    bool SendHeartbeat();
+    bool FetchNextCommand();
+    bool GetJson(
+        const std::string& endpoint,
+        std::string& response_body
+    );
+
+    void HandleCommand(
+        const std::string& response_body
+    );
+
+    bool PostJson(
+        const std::string& endpoint,
+        const std::string& json_body
+    );
+
+    std::string BuildDeviceId() const;
+    TaskHandle_t audio_task_handle_ = nullptr;
+    TaskHandle_t task_handle_ = nullptr;
+    bool registered_ = false;
+};
+
+#endif

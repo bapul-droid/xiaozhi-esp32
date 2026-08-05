@@ -10,6 +10,7 @@
 #include "system_info.h"
 #include "text_glyph_payload.h"
 #include "websocket_protocol.h"
+#include "genius_client/genius_client.h"
 
 #include <driver/gpio.h>
 #include <esp_log.h>
@@ -297,6 +298,8 @@ void Application::HandleNetworkConnectedEvent() {
     // Update the status bar immediately to show the network state
     auto display = Board::GetInstance().GetDisplay();
     display->UpdateStatusBar(true);
+
+GeniusClient::GetInstance().Start();
 }
 
 void Application::HandleNetworkDisconnectedEvent() {
