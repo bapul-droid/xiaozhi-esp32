@@ -123,15 +123,22 @@ private:
     }
 
     void InitializeButtons() {
-        boot_button_.OnClick([this]() {
-            auto& app = Application::GetInstance();
-            if (app.GetDeviceState() == kDeviceStateStarting) {
-                EnterWifiConfigMode();
-                return;
-            }
-            app.ToggleChatState();
-        });
-    }
+    boot_button_.OnClick([this]() {
+        ESP_LOGI(TAG, "BOOT single click");
+
+        auto& app = Application::GetInstance();
+        app.ToggleChatState();
+    });
+
+    boot_button_.OnLongPress([this]() {
+        ESP_LOGI(
+            TAG,
+            "BOOT long press - entering WiFi config"
+        );
+
+        EnterWifiConfigMode();
+    });
+}
 
     // 物联网初始化，添加对 AI 可见设备
     void InitializeTools() {
@@ -140,7 +147,11 @@ private:
 
 public:
     CompactWifiBoardLCD() :
-        boot_button_(BOOT_BUTTON_GPIO) {
+    boot_button_(
+        BOOT_BUTTON_GPIO,
+        false,
+        2500
+    ) {
         InitializeSpi();
         InitializeLcdDisplay();
         InitializeButtons();
