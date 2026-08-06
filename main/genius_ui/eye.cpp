@@ -6,10 +6,41 @@ namespace {
 constexpr uint32_t kFaceBlue = 0x42A5F5;
 constexpr uint32_t kFaceBlueLight = 0x67C3FF;
 
-constexpr int kEyeSize = 38;
-constexpr int kEyeClosedHeight = 9;
-constexpr int kEyeOffsetX = 29;
-constexpr int kEyeOffsetY = -10;
+/*
+ * Minji default face geometry.
+ *
+ * Semua ukuran utama dipusatkan di sini agar mudah
+ * dikoreksi setelah melihat hasil nyata di LCD.
+ */
+constexpr int kEyeWidth = 34;
+constexpr int kEyeHeight = 46;
+constexpr int kEyeClosedHeight = 7;
+
+constexpr int kEyeOffsetX = 31;
+constexpr int kEyeOffsetY = -12;
+
+constexpr int kEyeRadius = 17;
+
+constexpr int kHappyArcWidth = 22;
+constexpr int kHappyArcHeight = 16;
+constexpr int kHappyArcThickness = 4;
+
+constexpr int kMouthWidth = 40;
+constexpr int kMouthHeight = 25;
+constexpr int kMouthOffsetY = 31;
+constexpr int kMouthThickness = 4;
+
+constexpr int kListeningEyeWidth = 38;
+constexpr int kListeningEyeHeight = 50;
+
+constexpr int kGazeShift = 3;
+
+constexpr int kPupilSize = 8;
+
+constexpr int kPupilCenterX = 0;
+constexpr int kPupilCenterY = -3;
+
+constexpr int kPupilMove = 3;
 
 lv_obj_t* left_eye = nullptr;
 lv_obj_t* right_eye = nullptr;
@@ -17,6 +48,9 @@ lv_obj_t* right_eye = nullptr;
 lv_obj_t* left_smile = nullptr;
 lv_obj_t* right_smile = nullptr;
 lv_obj_t* mouth = nullptr;
+
+lv_obj_t* left_pupil = nullptr;
+lv_obj_t* right_pupil = nullptr;
 
 lv_timer_t* blink_timer = nullptr;
 lv_timer_t* gaze_timer = nullptr;
@@ -38,19 +72,21 @@ void RemoveObject(lv_obj_t*& object)
 }
 
 
-void ConfigureCircleEye(lv_obj_t* eye)
+void ConfigureMinjiEye(
+    lv_obj_t* eye
+)
 {
     lv_obj_remove_style_all(eye);
 
     lv_obj_set_size(
         eye,
-        kEyeSize,
-        kEyeSize
+        kEyeWidth,
+        kEyeHeight
     );
 
     lv_obj_set_style_radius(
         eye,
-        LV_RADIUS_CIRCLE,
+        kEyeRadius,
         0
     );
 
@@ -91,6 +127,59 @@ void ConfigureCircleEye(lv_obj_t* eye)
 }
 
 
+
+void ConfigurePupil(
+    lv_obj_t* pupil
+)
+{
+    if (pupil == nullptr) {
+        return;
+    }
+
+    lv_obj_remove_style_all(pupil);
+
+    lv_obj_set_size(
+        pupil,
+        kPupilSize,
+        kPupilSize
+    );
+
+    lv_obj_set_style_radius(
+        pupil,
+        LV_RADIUS_CIRCLE,
+        0
+    );
+
+    lv_obj_set_style_bg_color(
+        pupil,
+        lv_color_hex(0x16324A),
+        0
+    );
+
+    lv_obj_set_style_bg_opa(
+        pupil,
+        LV_OPA_COVER,
+        0
+    );
+
+    lv_obj_set_style_border_width(
+        pupil,
+        0,
+        0
+    );
+
+    lv_obj_remove_flag(
+        pupil,
+        LV_OBJ_FLAG_SCROLLABLE
+    );
+
+    lv_obj_remove_flag(
+        pupil,
+        LV_OBJ_FLAG_CLICKABLE
+    );
+}
+
+
 lv_obj_t* CreateHappyArc(
     lv_obj_t* parent
 )
@@ -105,8 +194,8 @@ lv_obj_t* CreateHappyArc(
 
     lv_obj_set_size(
         arc,
-        24,
-        17
+        kHappyArcWidth,
+        kHappyArcHeight
     );
 
     lv_arc_set_bg_angles(
@@ -135,7 +224,7 @@ lv_obj_t* CreateHappyArc(
 
     lv_obj_set_style_arc_width(
         arc,
-        5,
+        kHappyArcThickness,
         LV_PART_INDICATOR
     );
 
@@ -167,8 +256,8 @@ void ConfigureMouth(
 
     lv_obj_set_size(
         arc,
-        43,
-        28
+        kMouthWidth,
+        kMouthHeight
     );
 
     lv_arc_set_bg_angles(
@@ -197,7 +286,7 @@ void ConfigureMouth(
 
     lv_obj_set_style_arc_width(
         arc,
-        5,
+        kMouthThickness,
         LV_PART_INDICATOR
     );
 
@@ -239,6 +328,66 @@ void AlignEyes(
     );
 }
 
+void AlignPupils(
+    int horizontal_shift
+)
+{
+    if (
+        left_pupil == nullptr ||
+        right_pupil == nullptr
+    ) {
+        return;
+    }
+
+    lv_obj_align(
+        left_pupil,
+        LV_ALIGN_CENTER,
+        kPupilCenterX + horizontal_shift,
+        kPupilCenterY
+    );
+
+    lv_obj_align(
+        right_pupil,
+        LV_ALIGN_CENTER,
+        kPupilCenterX + horizontal_shift,
+        kPupilCenterY
+    );
+}
+
+void RestoreOpenEyeGeometry()
+{
+    if (
+        left_eye == nullptr ||
+        right_eye == nullptr
+    ) {
+        return;
+    }
+
+    lv_obj_set_size(
+        left_eye,
+        kEyeWidth,
+        kEyeHeight
+    );
+
+    lv_obj_set_size(
+        right_eye,
+        kEyeWidth,
+        kEyeHeight
+    );
+
+    lv_obj_set_style_radius(
+        left_eye,
+        kEyeRadius,
+        0
+    );
+
+    lv_obj_set_style_radius(
+        right_eye,
+        kEyeRadius,
+        0
+    );
+}
+
 
 void SetClosedState(
     bool closed
@@ -254,14 +403,28 @@ void SetClosedState(
     eyes_closed = closed;
 
     if (closed) {
-        lv_obj_set_height(
+        lv_obj_set_size(
             left_eye,
+            kEyeWidth,
             kEyeClosedHeight
         );
 
-        lv_obj_set_height(
+        lv_obj_set_size(
             right_eye,
+            kEyeWidth,
             kEyeClosedHeight
+        );
+
+        lv_obj_set_style_radius(
+            left_eye,
+            LV_RADIUS_CIRCLE,
+            0
+        );
+
+        lv_obj_set_style_radius(
+            right_eye,
+            LV_RADIUS_CIRCLE,
+            0
         );
 
         if (left_smile != nullptr) {
@@ -278,17 +441,7 @@ void SetClosedState(
             );
         }
     } else {
-        lv_obj_set_size(
-            left_eye,
-            kEyeSize,
-            kEyeSize
-        );
-
-        lv_obj_set_size(
-            right_eye,
-            kEyeSize,
-            kEyeSize
-        );
+        RestoreOpenEyeGeometry();
 
         if (left_smile != nullptr) {
             lv_obj_remove_flag(
@@ -316,14 +469,14 @@ void BlinkTimerCallback(
 
         lv_timer_set_period(
             timer,
-            170
+            160
         );
     } else {
         SetClosedState(false);
 
         const uint32_t next_blink =
             static_cast<uint32_t>(
-                lv_rand(2400, 4800)
+                lv_rand(2800, 5600)
             );
 
         lv_timer_set_period(
@@ -342,22 +495,25 @@ void GazeTimerCallback(
 
     switch (gaze_state % 5) {
         case 1:
-            AlignEyes(-4);
+            AlignEyes(-kGazeShift);
+            AlignPupils(-kPupilMove);
             break;
 
         case 3:
-            AlignEyes(4);
+            AlignEyes(kGazeShift);
+            AlignPupils(kPupilMove);
             break;
 
         default:
             AlignEyes(0);
+            AlignPupils(0);
             break;
     }
 
     lv_timer_set_period(
         timer,
         static_cast<uint32_t>(
-            lv_rand(900, 2200)
+            lv_rand(1100, 2400)
         )
     );
 }
@@ -376,6 +532,9 @@ void Eye::Create(
     RemoveObject(left_eye);
     RemoveObject(right_eye);
 
+    left_pupil = nullptr;
+    right_pupil = nullptr;
+
     left_smile = nullptr;
     right_smile = nullptr;
     mouth = nullptr;
@@ -393,10 +552,17 @@ void Eye::Create(
     left_eye = lv_obj_create(parent);
     right_eye = lv_obj_create(parent);
 
-    ConfigureCircleEye(left_eye);
-    ConfigureCircleEye(right_eye);
+    ConfigureMinjiEye(left_eye);
+    ConfigureMinjiEye(right_eye);
+
+    left_pupil = lv_obj_create(left_eye);
+    right_pupil = lv_obj_create(right_eye);
+
+    ConfigurePupil(left_pupil);
+    ConfigurePupil(right_pupil);
 
     AlignEyes(0);
+    AlignPupils(0);
 
     left_smile = CreateHappyArc(left_eye);
     right_smile = CreateHappyArc(right_eye);
@@ -408,7 +574,7 @@ void Eye::Create(
         mouth,
         LV_ALIGN_CENTER,
         0,
-        31
+        kMouthOffsetY
     );
 
     SetClosedState(false);
@@ -416,18 +582,17 @@ void Eye::Create(
     blink_timer = lv_timer_create(
         BlinkTimerCallback,
         static_cast<uint32_t>(
-            lv_rand(2400, 4800)
+            lv_rand(2800, 5600)
         ),
         nullptr
     );
 
     gaze_timer = lv_timer_create(
         GazeTimerCallback,
-        1300,
+        1400,
         nullptr
     );
 }
-
 
 void Eye::SetClosed(
     bool closed
@@ -453,7 +618,9 @@ void Eye::Talk(
 
     lv_obj_set_style_arc_width(
         mouth,
-        enable ? 8 : 5,
+        enable
+            ? kMouthThickness + 3
+            : kMouthThickness,
         LV_PART_INDICATOR
     );
 }
@@ -461,19 +628,22 @@ void Eye::Talk(
 
 void Eye::LookLeft()
 {
-    AlignEyes(-5);
+    AlignEyes(-kGazeShift);
+    AlignPupils(-kPupilMove);
 }
 
 
 void Eye::LookRight()
 {
-    AlignEyes(5);
+    AlignEyes(kGazeShift);
+    AlignPupils(kPupilMove);
 }
 
 
 void Eye::LookCenter()
 {
     AlignEyes(0);
+    AlignPupils(0);
 }
 
 void Eye::SetListening(
@@ -492,30 +662,21 @@ void Eye::SetListening(
 
         lv_obj_set_size(
             left_eye,
-            45,
-            45
+            kListeningEyeWidth,
+            kListeningEyeHeight
         );
 
         lv_obj_set_size(
             right_eye,
-            45,
-            45
+            kListeningEyeWidth,
+            kListeningEyeHeight
         );
 
         AlignEyes(0);
+        AlignPupils(0);
     } else {
-        lv_obj_set_size(
-            left_eye,
-            kEyeSize,
-            kEyeSize
-        );
-
-        lv_obj_set_size(
-            right_eye,
-            kEyeSize,
-            kEyeSize
-        );
-
+        RestoreOpenEyeGeometry();
         AlignEyes(0);
+        AlignPupils(0);
     }
 }
