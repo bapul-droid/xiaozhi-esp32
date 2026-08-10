@@ -25,6 +25,14 @@ public:
         Emotion emotion
     );
 
+    // Speaking is an independent device state, not an emotion.
+    // This lets Minji be Happy/Thinking/etc. while the mouth keeps talking.
+    static void SetSpeaking(
+        bool speaking
+    );
+
+    static bool IsSpeaking();
+
     static Emotion GetEmotion();
 
 private:

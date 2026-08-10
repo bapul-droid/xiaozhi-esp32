@@ -1,5 +1,6 @@
-﻿#include "lcd_display.h"
+#include "lcd_display.h"
 #include "genius_ui/genius_ui.h"
+#include "genius_ui/minji_face.h"
 #include "assets/lang_config.h"
 #include "gif/lvgl_gif.h"
 #include "lvgl_theme.h"
@@ -1105,6 +1106,60 @@ void LcdDisplay::ClearChatMessages() {
 #endif
 
 void LcdDisplay::SetEmotion(const char* emotion) {
+	ESP_LOGI(
+    TAG,
+    "SetEmotion called: %s, MinjiReady=%d",
+    emotion != nullptr ? emotion : "(null)",
+    MinjiFace::IsReady()
+);
+    if (MinjiFace::IsReady()) {
+        DisplayLockGuard lock(this);
+
+        MinjiFace::Emotion minji_emotion =
+            MinjiFace::Emotion::Idle;
+
+        if (emotion != nullptr) {
+            if (
+                strcmp(emotion, "listening") == 0 ||
+                strcmp(emotion, "attention") == 0
+            ) {
+                minji_emotion =
+                    MinjiFace::Emotion::Listening;
+            } else if (
+                strcmp(emotion, "speaking") == 0 ||
+                strcmp(emotion, "talking") == 0
+            ) {
+                minji_emotion =
+                    MinjiFace::Emotion::Speaking;
+            } else if (
+                strcmp(emotion, "thinking") == 0
+            ) {
+                minji_emotion =
+                    MinjiFace::Emotion::Thinking;
+            } else if (
+                strcmp(emotion, "happy") == 0 ||
+                strcmp(emotion, "laughing") == 0
+            ) {
+                minji_emotion =
+                    MinjiFace::Emotion::Happy;
+            } else if (
+                strcmp(emotion, "sleepy") == 0
+            ) {
+                minji_emotion =
+                    MinjiFace::Emotion::Sleep;
+            } else if (
+                strcmp(emotion, "error") == 0 ||
+                strcmp(emotion, "warning") == 0
+            ) {
+                minji_emotion =
+                    MinjiFace::Emotion::Error;
+            }
+        }
+
+        MinjiFace::SetEmotion(minji_emotion);
+        return;
+    }
+
     if (!setup_ui_called_) {
         ESP_LOGW(TAG, "SetEmotion('%s') called before SetupUI() - emotion will not be displayed!",
                  emotion);

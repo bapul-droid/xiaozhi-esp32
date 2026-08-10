@@ -217,32 +217,45 @@ void McpServer::AddUserOnlyTools() {
     );
 
     AddTool(
-        "self.media.play_radio",
-        "Play an internet radio station on this device. "
-        "Use this tool when the user asks to play or turn on a radio station.",
-        PropertyList({
-            Property(
-                "station_id",
-                kPropertyTypeString,
-                "Radio station identifier, for example prambors"
-            )
-        }),
-        [](const PropertyList& properties) -> ReturnValue {
-            const std::string station_id =
-                properties["station_id"].value<std::string>();
+    "self.media.play_radio",
+    "Play an internet radio station on this device. "
+    "If the user explicitly names a station, use that station. "
+    "If the user only says putar radio, nyalakan radio, play radio, "
+    "or does not mention a station name, station_id MUST be iradio. "
+    "Never guess Prambors, Rockin, or another station when no station is named.",
+    PropertyList({
+        Property(
+            "station_id",
+            kPropertyTypeString,
+            "Radio station identifier. "
+            "Use iradio when the user does not explicitly name a station. "
+            "Examples: iradio, prambors, rockin"
+        )
+    }),
+    [](const PropertyList& properties) -> ReturnValue {
+        std::string station_id =
+            properties["station_id"].value<std::string>();
 
-            ESP_LOGI(
-                TAG,
-                "MCP play_radio requested: %s",
-                station_id.c_str()
-            );
-
-            GeniusClient::GetInstance()
-                .PlayRadio(station_id);
-
-            return true;
+        if (
+            station_id.empty() ||
+            station_id == "radio" ||
+            station_id == "default"
+        ) {
+            station_id = "iradio";
         }
-    );
+
+        ESP_LOGI(
+            TAG,
+            "MCP play_radio requested: %s",
+            station_id.c_str()
+        );
+
+        GeniusClient::GetInstance()
+            .PlayRadio(station_id);
+
+        return true;
+    }
+);
 
     // Display control
 #ifdef HAVE_LVGL
