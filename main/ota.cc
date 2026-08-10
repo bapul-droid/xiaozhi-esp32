@@ -46,9 +46,19 @@ Ota::~Ota() {
 std::string Ota::GetCheckVersionUrl() {
     Settings settings("wifi", false);
     std::string url = settings.GetString("ota_url");
+
+    ESP_LOGW(TAG, "===== MINJI SERVER DEBUG =====");
+    ESP_LOGW(TAG, "Stored wifi/ota_url: %s",
+             url.empty() ? "(EMPTY)" : url.c_str());
+    ESP_LOGW(TAG, "Compiled CONFIG_OTA_URL: %s", CONFIG_OTA_URL);
+
     if (url.empty()) {
         url = CONFIG_OTA_URL;
     }
+
+    ESP_LOGW(TAG, "OTA URL actually used: %s", url.c_str());
+    ESP_LOGW(TAG, "==============================");
+
     return url;
 }
 
@@ -83,7 +93,10 @@ esp_err_t Ota::CheckVersion() {
     ESP_LOGI(TAG, "Current version: %s", current_version_.c_str());
 
     std::string url = GetCheckVersionUrl();
-    if (url.length() < 10) {
+
+ESP_LOGW(TAG, "MINJI OTA URL: %s", url.c_str());
+
+if (url.length() < 10) {
         ESP_LOGE(TAG, "Check version URL is not properly set");
         return ESP_ERR_INVALID_ARG;
     }

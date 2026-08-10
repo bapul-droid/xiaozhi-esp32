@@ -15,6 +15,7 @@ MinjiFace::Emotion current_emotion =
     MinjiFace::Emotion::Idle;
 
 bool initialized = false;
+bool speaking_active = false;
 
 }  // namespace
 
@@ -112,6 +113,7 @@ void MinjiFace::Init(
     lv_obj_invalidate(face_root);
 
     current_emotion = Emotion::Idle;
+    speaking_active = false;
     initialized = true;
 
     ESP_LOGI(
@@ -145,16 +147,77 @@ void MinjiFace::SetEmotion(
 
     current_emotion = emotion;
 
-    // Tahap foundation:
-    // belum mengubah bentuk mata.
-    // Ini sengaja agar aman sebelum
-    // emotion engine dihubungkan.
+    // Emotion controls the face/eyes only.
+    // Mouth speaking is controlled independently by SetSpeaking().
+    switch (emotion) {
+        case Emotion::Listening:
+            Eye::SetListening(true);
+            Eye::LookCenter();
+            break;
+
+        case Emotion::Speaking:
+            Eye::SetListening(false);
+            break;
+
+        case Emotion::Sleep:
+            Eye::SetListening(false);
+            Eye::Blink();
+            break;
+
+        case Emotion::Thinking:
+        case Emotion::Happy:
+        case Emotion::Error:
+            Eye::SetListening(false);
+            break;
+
+        case Emotion::Idle:
+        default:
+            Eye::SetListening(false);
+            Eye::LookCenter();
+            break;
+    }
 
     ESP_LOGI(
         TAG,
-        "Emotion changed: %d",
-        static_cast<int>(emotion)
+        "Emotion changed: %d (speaking=%d)",
+        static_cast<int>(emotion),
+        speaking_active ? 1 : 0
     );
+}
+
+
+void MinjiFace::SetSpeaking(
+    bool speaking
+)
+{
+    if (!IsReady()) {
+        ESP_LOGW(
+            TAG,
+            "SetSpeaking ignored: face not ready"
+        );
+
+        return;
+    }
+
+    if (speaking_active == speaking) {
+        return;
+    }
+
+    speaking_active = speaking;
+
+    ESP_LOGI(
+        TAG,
+        "Speaking state: %s",
+        speaking_active ? "ON" : "OFF"
+    );
+
+    Eye::Talk(speaking_active);
+}
+
+
+bool MinjiFace::IsSpeaking()
+{
+    return speaking_active;
 }
 
 
