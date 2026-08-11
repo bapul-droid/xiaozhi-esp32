@@ -117,9 +117,9 @@ void GeniusClient::Run()
             last_heartbeat_tick = now;
         }
 
-        if (audio_task_handle_ == nullptr) {
-            FetchNextCommand();
-        }
+        // Keep polling device commands while media is playing so
+        // stop_audio can be received during radio/music playback.
+        FetchNextCommand();
 
         vTaskDelay(
             pdMS_TO_TICKS(COMMAND_POLL_INTERVAL_MS)
