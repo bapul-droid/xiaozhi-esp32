@@ -200,7 +200,35 @@ void McpServer::AddUserOnlyTools() {
         }
     );
 
+AddTool(
+    "self.media.play_online_music",
+    "Search and play a specific song using the device's online Genius music service. "
+    "Use this tool when the user asks to play a song by title or artist. "
+    "Prefer this tool for requests such as putar lagu, mainkan lagu, play song, "
+    "or when the user names a specific song. "
+    "Do not use search_music when this tool can satisfy the request.",
+    PropertyList({
+        Property(
+            "query",
+            kPropertyTypeString,
+            "Song title and optionally artist, for example: "
+            "Die With A Smile Bruno Mars Lady Gaga"
+        )
+    }),
+    [](const PropertyList& properties) -> ReturnValue {
+        const std::string query =
+            properties["query"].value<std::string>();
 
+        ESP_LOGI(
+            TAG,
+            "MCP online music requested: %s",
+            query.c_str()
+        );
+
+        return GeniusClient::GetInstance()
+            .PlayOnlineMusic(query);
+    }
+);
     AddTool(
         "self.media.stop",
         "Stop the currently playing song or radio on this device. "
