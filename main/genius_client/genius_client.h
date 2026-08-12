@@ -22,13 +22,15 @@ public:
         StartLocalAudio(filename);
     }
 
-    void StopAudio();
+   void StopAudio();
 
-    void PlayRadio(
-        const std::string& station_id
-    );
+void PlayRadio(
+    const std::string& station_id
+);
 
-
+bool PlayOnlineMusic(
+    const std::string& query
+);
 private:
     GeniusClient() = default;
     GeniusClient(const GeniusClient&) = delete;

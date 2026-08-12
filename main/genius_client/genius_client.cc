@@ -572,7 +572,75 @@ void GeniusClient::StopAudio()
     ESP_LOGI(TAG, "Audio stop requested");
 }
 
+bool GeniusClient::PlayOnlineMusic(
+    const std::string& query
+)
+{
+    if (query.empty()) {
+        ESP_LOGW(TAG, "Online music query is empty");
+        return false;
+    }
 
+    cJSON* root = cJSON_CreateObject();
+
+    if (root == nullptr) {
+        ESP_LOGE(
+            TAG,
+            "Failed to create online music JSON"
+        );
+        return false;
+    }
+
+    cJSON_AddStringToObject(
+        root,
+        "query",
+        query.c_str()
+    );
+
+    char* json_text =
+        cJSON_PrintUnformatted(root);
+
+    cJSON_Delete(root);
+
+    if (json_text == nullptr) {
+        ESP_LOGE(
+            TAG,
+            "Failed to serialize online music JSON"
+        );
+        return false;
+    }
+
+    const std::string json_body(json_text);
+    cJSON_free(json_text);
+
+    ESP_LOGI(
+        TAG,
+        "Online music search requested: %s",
+        query.c_str()
+    );
+
+    if (!PostJson(
+            "/api/music/search-play",
+            json_body
+        )) {
+        ESP_LOGE(
+            TAG,
+            "Online music search failed: %s",
+            query.c_str()
+        );
+        return false;
+    }
+
+    ESP_LOGI(
+        TAG,
+        "Online music prepared: %s",
+        query.c_str()
+    );
+
+    PlayRadio("music");
+
+    return true;
+}
 void GeniusClient::PlayRadio(
     const std::string& station_id
 )
