@@ -571,7 +571,70 @@ void GeniusClient::StopAudio()
 
     ESP_LOGI(TAG, "Audio stop requested");
 }
+bool GeniusClient::GetNewsBulletin(
+    const std::string& category,
+    int limit,
+    std::string& bulletin
+)
+{
+    std::string safe_category =
+        category.empty() ? "terkini" : category;
 
+    if (limit < 1) {
+        limit = 1;
+    } else if (limit > 5) {
+        limit = 5;
+    }
+
+    const std::string endpoint =
+        "/api/news/presenter?category=" +
+        safe_category +
+        "&limit=" +
+        std::to_string(limit);
+
+    std::string response_body;
+
+    ESP_LOGI(
+        TAG,
+        "News bulletin requested: category=%s limit=%d",
+        safe_category.c_str(),
+        limit
+    );
+
+    if (!GetJson(endpoint, response_body)) {
+        ESP_LOGE(TAG, "Failed to fetch news bulletin");
+        return false;
+    }
+
+    cJSON* root =
+        cJSON_Parse(response_body.c_str());
+
+    if (root == nullptr) {
+        ESP_LOGE(TAG, "Invalid news JSON");
+        return false;
+    }
+
+    cJSON* text =
+        cJSON_GetObjectItem(root, "bulletin_text");
+
+    if (!cJSON_IsString(text)) {
+        ESP_LOGE(TAG, "News response has no bulletin_text");
+        cJSON_Delete(root);
+        return false;
+    }
+
+    bulletin = text->valuestring;
+
+    cJSON_Delete(root);
+
+    ESP_LOGI(
+        TAG,
+        "News bulletin ready: %u chars",
+        static_cast<unsigned>(bulletin.size())
+    );
+
+    return true;
+}
 bool GeniusClient::PlayOnlineMusic(
     const std::string& query
 )
