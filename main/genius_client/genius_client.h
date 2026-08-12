@@ -31,6 +31,11 @@ void PlayRadio(
 bool PlayOnlineMusic(
     const std::string& query
 );
+bool GetNewsBulletin(
+    const std::string& category,
+    int limit,
+    std::string& bulletin
+);
 private:
     GeniusClient() = default;
     GeniusClient(const GeniusClient&) = delete;

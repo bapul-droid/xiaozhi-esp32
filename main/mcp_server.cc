@@ -199,7 +199,47 @@ void McpServer::AddUserOnlyTools() {
             return true;
         }
     );
+AddTool(
+    "self.news.get_latest",
+    "Get current Indonesian news from the device's Genius news service. "
+    "Use this tool whenever the user asks for current news, today's news, "
+    "latest news, Indonesian news, political news, legal news, or economic news. "
+    "Read the returned bulletin naturally to the user. "
+    "Do not use another news provider when this tool can satisfy the request.",
+    PropertyList({
+        Property(
+            "category",
+            kPropertyTypeString,
+            "News category. Use terkini by default. "
+            "Available: terkini, top, politik, hukum, ekonomi."
+        )
+    }),
+    [](const PropertyList& properties) -> ReturnValue {
+        std::string category =
+            properties["category"].value<std::string>();
 
+        if (category.empty()) {
+            category = "terkini";
+        }
+
+        std::string bulletin;
+
+        const bool success =
+            GeniusClient::GetInstance().GetNewsBulletin(
+                category,
+                3,
+                bulletin
+            );
+
+        if (!success) {
+            return std::string(
+                "Maaf, berita terbaru belum berhasil diambil."
+            );
+        }
+
+        return bulletin;
+    }
+);
 AddTool(
     "self.media.play_online_music",
     "Search and play a specific song using the device's online Genius music service. "
