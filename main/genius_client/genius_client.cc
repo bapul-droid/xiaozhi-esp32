@@ -293,6 +293,7 @@ bool GeniusClient::PostJson(
         Board::GetInstance().GetNetwork();
 
     if (network == nullptr) {
+        MarkServerUnavailable();
         ESP_LOGE(TAG, "Network interface is unavailable");
         return false;
     }
@@ -300,6 +301,7 @@ bool GeniusClient::PostJson(
     auto http = network->CreateHttp(3);
 
     if (http == nullptr) {
+        MarkServerUnavailable();
         ESP_LOGE(TAG, "Failed to create HTTP client");
         return false;
     }
@@ -324,6 +326,7 @@ bool GeniusClient::PostJson(
     ESP_LOGI(TAG, "POST %s", url.c_str());
 
     if (!http->Open("POST", url)) {
+        MarkServerUnavailable();
         ESP_LOGE(
             TAG,
             "Failed to connect to GeniusAI Core, error=0x%x",
@@ -332,6 +335,8 @@ bool GeniusClient::PostJson(
 
         return false;
     }
+
+    MarkServerAvailable();
 
     const int status_code =
         http->GetStatusCode();
@@ -371,6 +376,7 @@ bool GeniusClient::GetJson(
         Board::GetInstance().GetNetwork();
 
     if (network == nullptr) {
+        MarkServerUnavailable();
         ESP_LOGE(TAG, "Network interface is unavailable");
         return false;
     }
@@ -378,6 +384,7 @@ bool GeniusClient::GetJson(
     auto http = network->CreateHttp(3);
 
     if (http == nullptr) {
+        MarkServerUnavailable();
         ESP_LOGE(TAG, "Failed to create HTTP client");
         return false;
     }
@@ -396,6 +403,7 @@ bool GeniusClient::GetJson(
     );
 
     if (!http->Open("GET", url)) {
+        MarkServerUnavailable();
         ESP_LOGW(
             TAG,
             "GET failed: %s, error=0x%x",
@@ -405,6 +413,8 @@ bool GeniusClient::GetJson(
 
         return false;
     }
+
+    MarkServerAvailable();
 
     const int status_code =
         http->GetStatusCode();
@@ -631,6 +641,162 @@ bool GeniusClient::GetNewsBulletin(
         TAG,
         "News bulletin ready: %u chars",
         static_cast<unsigned>(bulletin.size())
+    );
+
+    return true;
+}
+void GeniusClient::MarkServerAvailable()
+{
+    last_server_success_us_.store(esp_timer_get_time());
+    server_available_.store(true);
+}
+
+void GeniusClient::MarkServerUnavailable()
+{
+    server_available_.store(false);
+}
+
+bool GeniusClient::IsServerAvailable()
+{
+    if (!server_available_.load()) {
+        return false;
+    }
+
+    constexpr int64_t kServerStateTtlUs = 5LL * 1000LL * 1000LL;
+    const int64_t last_success = last_server_success_us_.load();
+
+    if (last_success <= 0) {
+        return false;
+    }
+
+    const int64_t age = esp_timer_get_time() - last_success;
+    return age >= 0 && age <= kServerStateTtlUs;
+}
+
+
+bool GeniusClient::SearchKnowledge(
+    const std::string& query,
+    int limit,
+    std::string& result
+)
+{
+    if (query.empty()) {
+        ESP_LOGW(TAG, "Knowledge query is empty");
+        return false;
+    }
+
+    if (limit < 1) {
+        limit = 1;
+    } else if (limit > 5) {
+        limit = 5;
+    }
+
+    std::string encoded_query;
+
+    for (unsigned char ch : query) {
+        if (
+            std::isalnum(ch) ||
+            ch == '-' ||
+            ch == '_' ||
+            ch == '.' ||
+            ch == '~'
+        ) {
+            encoded_query += static_cast<char>(ch);
+        } else if (ch == ' ') {
+            encoded_query += "%20";
+        } else {
+            char buffer[4];
+            snprintf(
+                buffer,
+                sizeof(buffer),
+                "%%%02X",
+                ch
+            );
+            encoded_query += buffer;
+        }
+    }
+
+    const std::string endpoint =
+        "/api/knowledge/search?q=" +
+        encoded_query +
+        "&limit=" +
+        std::to_string(limit);
+
+    std::string response_body;
+
+    ESP_LOGI(
+        TAG,
+        "Knowledge search: %s",
+        query.c_str()
+    );
+
+    if (!GetJson(endpoint, response_body)) {
+        ESP_LOGW(TAG, "Knowledge server unavailable");
+        return false;
+    }
+
+    cJSON* root =
+        cJSON_Parse(response_body.c_str());
+
+    if (root == nullptr) {
+        ESP_LOGE(TAG, "Invalid knowledge JSON");
+        return false;
+    }
+
+    cJSON* results =
+        cJSON_GetObjectItem(root, "results");
+
+    if (!cJSON_IsArray(results)) {
+        ESP_LOGE(TAG, "Knowledge response has no results");
+        cJSON_Delete(root);
+        return false;
+    }
+
+    std::string text;
+
+    cJSON* item = nullptr;
+
+    cJSON_ArrayForEach(item, results) {
+        cJSON* title =
+            cJSON_GetObjectItem(item, "title");
+
+        cJSON* snippet =
+            cJSON_GetObjectItem(item, "snippet");
+
+        cJSON* url =
+            cJSON_GetObjectItem(item, "url");
+
+        if (cJSON_IsString(title)) {
+            text += "Sumber: ";
+            text += title->valuestring;
+            text += ". ";
+        }
+
+        if (cJSON_IsString(snippet)) {
+            text += snippet->valuestring;
+            text += " ";
+        }
+
+        if (cJSON_IsString(url)) {
+            text += "URL: ";
+            text += url->valuestring;
+            text += ". ";
+        }
+    }
+
+    cJSON_Delete(root);
+
+    if (text.empty()) {
+        ESP_LOGW(TAG, "Knowledge search returned no usable text");
+        return false;
+    }
+
+    result = std::move(text);
+
+    ESP_LOGI(
+        TAG,
+        "Knowledge result ready: %u chars",
+        static_cast<unsigned>(result.size())
     );
 
     return true;

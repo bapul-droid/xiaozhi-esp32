@@ -69,7 +69,7 @@ std::unique_ptr<Http> Ota::SetupHttp() {
     auto user_agent = SystemInfo::GetUserAgent();
     http->SetHeader("Activation-Version", has_serial_number_ ? "2" : "1");
     http->SetHeader("Device-Id", SystemInfo::GetMacAddress().c_str());
-    http->SetHeader("Client-Id", board.GetUuid());
+http->SetHeader("Client-Id", board.GetUuid());
     if (has_serial_number_) {
         http->SetHeader("Serial-Number", serial_number_.c_str());
         ESP_LOGI(TAG, "Setup HTTP, User-Agent: %s, Serial-Number: %s", user_agent.c_str(), serial_number_.c_str());
@@ -104,6 +104,9 @@ if (url.length() < 10) {
     auto http = SetupHttp();
 
     std::string data = board.GetSystemInfoJson();
+	ESP_LOGW(TAG, "===== OTA REQUEST BODY =====");
+ESP_LOGW(TAG, "%s", data.c_str());
+ESP_LOGW(TAG, "============================");
     std::string method = data.length() > 0 ? "POST" : "GET";
     http->SetContent(std::move(data));
 
@@ -120,7 +123,11 @@ if (url.length() < 10) {
     }
 
     data = http->ReadAll();
-    http->Close();
+http->Close();
+
+ESP_LOGW(TAG, "===== TENCLASS OTA RESPONSE =====");
+ESP_LOGW(TAG, "%s", data.c_str());
+ESP_LOGW(TAG, "=================================");
 
     // Response: { "firmware": { "version": "1.0.0", "url": "http://" } }
     // Parse the JSON response and check if the version is newer

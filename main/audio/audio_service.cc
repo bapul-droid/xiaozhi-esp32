@@ -30,6 +30,9 @@
 
 #define TAG "AudioService"
 
+
+// Genius media bridge temporarily disabled: all decoded audio uses the internal codec.
+
 AudioService::AudioService() {
     event_group_ = xEventGroupCreate();
 }
@@ -177,6 +180,7 @@ void AudioService::Stop() {
         ++playback_generation_;
         audio_encode_queue_.clear();
         audio_decode_queue_.clear();
+        audio_decode_media_flags_.clear();
         audio_playback_queue_.clear();
         audio_testing_queue_.clear();
         notify_drained = MarkPlaybackDrainedLocked();
@@ -333,6 +337,7 @@ void AudioService::AudioOutputTask() {
             codec_->EnableOutput(true);
         }
 
+        // Route all playback, including Genius radio/music, to Minji's internal speaker.
         codec_->OutputData(task->pcm);
 
         /* Update the last output time */
@@ -376,6 +381,11 @@ void AudioService::OpusCodecTask() {
         if (!audio_decode_queue_.empty() && audio_playback_queue_.size() < MAX_PLAYBACK_TASKS_IN_QUEUE) {
             auto packet = std::move(audio_decode_queue_.front());
             audio_decode_queue_.pop_front();
+            bool genius_media = false;
+            if (!audio_decode_media_flags_.empty()) {
+                genius_media = audio_decode_media_flags_.front();
+                audio_decode_media_flags_.pop_front();
+            }
             decode_in_flight_ = true;
             const uint32_t generation = playback_generation_;
             audio_queue_cv_.notify_all();
@@ -384,6 +394,7 @@ void AudioService::OpusCodecTask() {
             auto task = std::make_unique<AudioTask>();
             task->type = kAudioTaskTypeDecodeToPlaybackQueue;
             task->timestamp = packet->timestamp;
+            task->genius_media = genius_media;
 
             SetDecodeSampleRate(packet->sample_rate, packet->frame_duration);
             bool decoded = false;
@@ -577,7 +588,8 @@ void AudioService::PushTaskToEncodeQueue(AudioTaskType type, std::vector<int16_t
     }
 }
 
-bool AudioService::PushPacketToDecodeQueue(std::unique_ptr<AudioStreamPacket> packet, bool wait) {
+bool AudioService::PushPacketToDecodeQueue(std::unique_ptr<AudioStreamPacket> packet, bool wait,
+                                           bool genius_media) {
     std::unique_lock<std::mutex> lock(audio_queue_mutex_);
     if (audio_decode_queue_.size() >= MAX_DECODE_PACKETS_IN_QUEUE) {
         if (wait) {
@@ -594,6 +606,7 @@ bool AudioService::PushPacketToDecodeQueue(std::unique_ptr<AudioStreamPacket> pa
     }
     playback_drained_notified_ = false;
     audio_decode_queue_.push_back(std::move(packet));
+    audio_decode_media_flags_.push_back(genius_media);
     audio_queue_cv_.notify_all();
     return true;
 }
@@ -685,6 +698,7 @@ void AudioService::EnableAudioTesting(bool enable) {
         /* Copy audio_testing_queue_ to audio_decode_queue_ */
         std::lock_guard<std::mutex> lock(audio_queue_mutex_);
         audio_decode_queue_ = std::move(audio_testing_queue_);
+        audio_decode_media_flags_.assign(audio_decode_queue_.size(), false);
         if (!audio_decode_queue_.empty()) {
             playback_drained_notified_ = false;
         }
@@ -752,6 +766,7 @@ void AudioService::ResetDecoder() {
         decoder_lock.unlock();
         timestamp_queue_.clear();
         audio_decode_queue_.clear();
+        audio_decode_media_flags_.clear();
         audio_playback_queue_.clear();
         audio_testing_queue_.clear();
         notify_drained = MarkPlaybackDrainedLocked();

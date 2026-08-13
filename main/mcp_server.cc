@@ -199,76 +199,146 @@ void McpServer::AddUserOnlyTools() {
             return true;
         }
     );
-AddTool(
-    "self.news.get_latest",
-    "Get current Indonesian news from the device's Genius news service. "
-    "Use this tool whenever the user asks for current news, today's news, "
-    "latest news, Indonesian news, political news, legal news, or economic news. "
-    "Read the returned bulletin naturally to the user. "
-    "Do not use another news provider when this tool can satisfy the request.",
-    PropertyList({
-        Property(
-            "category",
-            kPropertyTypeString,
-            "News category. Use terkini by default. "
-            "Available: terkini, top, politik, hukum, ekonomi."
-        )
-    }),
-    [](const PropertyList& properties) -> ReturnValue {
-        std::string category =
-            properties["category"].value<std::string>();
 
-        if (category.empty()) {
-            category = "terkini";
+    AddTool(
+        "self.news.get_latest",
+        "Get current Indonesian news from the device's Genius news service. "
+        "Use this tool whenever the user asks for current news, today's news, "
+        "latest news, Indonesian news, political news, legal news, or economic news. "
+        "Read the returned bulletin naturally to the user. "
+        "Do not use another news provider when this tool can satisfy the request.",
+        PropertyList({
+            Property(
+                "category",
+                kPropertyTypeString,
+                "News category. Use terkini by default. "
+                "Available: terkini, top, politik, hukum, ekonomi."
+            )
+        }),
+        [](const PropertyList& properties) -> ReturnValue {
+            std::string category =
+                properties["category"].value<std::string>();
+
+            if (category.empty()) {
+                category = "terkini";
+            }
+
+            auto& genius = GeniusClient::GetInstance();
+
+            if (!genius.IsServerAvailable()) {
+                return std::string(
+                    "Maaf, server sedang offline sehingga saya tidak bisa melakukan itu."
+                );
+            }
+
+            std::string bulletin;
+
+            const bool success =
+                genius.GetNewsBulletin(
+                    category,
+                    3,
+                    bulletin
+                );
+
+            if (!success) {
+                return std::string(
+                    "Maaf, berita terbaru belum berhasil diambil."
+                );
+            }
+
+            return bulletin;
         }
+    );
 
-        std::string bulletin;
+    AddTool(
+        "self.knowledge.search",
+        "Search the global web for general knowledge or current information. "
+        "Use this tool when the user asks something you do not know, "
+        "when information may have changed recently, "
+        "or when the user asks you to find or search for information. "
+        "Use the returned sources to answer naturally. "
+        "Do not say you do not know before trying this tool when web search can answer the question.",
+        PropertyList({
+            Property(
+                "query",
+                kPropertyTypeString,
+                "The user's question or search query."
+            )
+        }),
+        [](const PropertyList& properties) -> ReturnValue {
+            const std::string query =
+                properties["query"].value<std::string>();
 
-        const bool success =
-            GeniusClient::GetInstance().GetNewsBulletin(
-                category,
-                3,
-                bulletin
+            auto& genius = GeniusClient::GetInstance();
+
+            if (!genius.IsServerAvailable()) {
+                return std::string(
+                    "Maaf, server sedang offline sehingga saya tidak bisa melakukan itu."
+                );
+            }
+
+            std::string result;
+
+            if (!genius.SearchKnowledge(query, 3, result)) {
+                return std::string(
+                    "Maaf, saya belum berhasil menemukan informasi yang dibutuhkan."
+                );
+            }
+
+            return result;
+        }
+    );
+
+    AddTool(
+        "self.media.play_online_music",
+        "Search and play a specific song using the device's online Genius music service. "
+        "Use this tool when the user asks to play a song by title or artist. "
+        "Prefer this tool for requests such as putar lagu, mainkan lagu, play song, "
+        "or when the user names a specific song. "
+        "Do not use search_music when this tool can satisfy the request.",
+        PropertyList({
+            Property(
+                "query",
+                kPropertyTypeString,
+                "Song title and optionally artist, for example: "
+                "Die With A Smile Bruno Mars Lady Gaga"
+            )
+        }),
+        [](const PropertyList& properties) -> ReturnValue {
+            const std::string query =
+                properties["query"].value<std::string>();
+
+            ESP_LOGI(
+                TAG,
+                "MCP online music requested: %s",
+                query.c_str()
             );
 
-        if (!success) {
-            return std::string(
-                "Maaf, berita terbaru belum berhasil diambil."
+            auto& genius = GeniusClient::GetInstance();
+
+            if (!genius.IsServerAvailable()) {
+                return std::string(
+                    "Maaf, server sedang offline sehingga saya tidak bisa melakukan itu."
+                );
+            }
+
+            Application::GetInstance().RunMediaAfterSpeaking(
+                [query]() {
+                    auto& genius = GeniusClient::GetInstance();
+                    if (!genius.IsServerAvailable()) {
+                        ESP_LOGW(TAG, "Deferred online music cancelled: Genius server offline");
+                        return;
+                    }
+                    if (!genius.PlayOnlineMusic(query)) {
+                        ESP_LOGW(TAG, "Deferred online music failed: %s", query.c_str());
+                    }
+                }
             );
+
+            return true;
         }
+    );
 
-        return bulletin;
-    }
-);
-AddTool(
-    "self.media.play_online_music",
-    "Search and play a specific song using the device's online Genius music service. "
-    "Use this tool when the user asks to play a song by title or artist. "
-    "Prefer this tool for requests such as putar lagu, mainkan lagu, play song, "
-    "or when the user names a specific song. "
-    "Do not use search_music when this tool can satisfy the request.",
-    PropertyList({
-        Property(
-            "query",
-            kPropertyTypeString,
-            "Song title and optionally artist, for example: "
-            "Die With A Smile Bruno Mars Lady Gaga"
-        )
-    }),
-    [](const PropertyList& properties) -> ReturnValue {
-        const std::string query =
-            properties["query"].value<std::string>();
-
-        ESP_LOGI(
-            TAG,
-            "MCP online music requested: %s",
-            query.c_str()
-        );
-
-        return GeniusClient::GetInstance()
-            .PlayOnlineMusic(query);
-    }
-);
     AddTool(
         "self.media.stop",
         "Stop the currently playing song or radio on this device. "
@@ -276,6 +346,9 @@ AddTool(
         PropertyList(),
         [](const PropertyList& properties) -> ReturnValue {
             ESP_LOGI(TAG, "MCP stop requested");
+
+            auto& app = Application::GetInstance();
+            app.CancelPendingMediaStart();
 
             GeniusClient::GetInstance()
                 .StopAudio();
@@ -285,45 +358,61 @@ AddTool(
     );
 
     AddTool(
-    "self.media.play_radio",
-    "Play an internet radio station on this device. "
-    "If the user explicitly names a station, use that station. "
-    "If the user only says putar radio, nyalakan radio, play radio, "
-    "or does not mention a station name, station_id MUST be iradio. "
-    "Never guess Prambors, Rockin, or another station when no station is named.",
-    PropertyList({
-        Property(
-            "station_id",
-            kPropertyTypeString,
-            "Radio station identifier. "
-            "Use iradio when the user does not explicitly name a station. "
-            "Examples: iradio, prambors, rockin"
-        )
-    }),
-    [](const PropertyList& properties) -> ReturnValue {
-        std::string station_id =
-            properties["station_id"].value<std::string>();
+        "self.media.play_radio",
+        "Play an internet radio station on this device. "
+        "If the user explicitly names a station, use that station. "
+        "If the user only says putar radio, nyalakan radio, play radio, "
+        "or does not mention a station name, station_id MUST be iradio. "
+        "Never guess Prambors, Rockin, or another station when no station is named.",
+        PropertyList({
+            Property(
+                "station_id",
+                kPropertyTypeString,
+                "Radio station identifier. "
+                "Use iradio when the user does not explicitly name a station. "
+                "Examples: iradio, prambors, rockin"
+            )
+        }),
+        [](const PropertyList& properties) -> ReturnValue {
+            std::string station_id =
+                properties["station_id"].value<std::string>();
 
-        if (
-            station_id.empty() ||
-            station_id == "radio" ||
-            station_id == "default"
-        ) {
-            station_id = "iradio";
+            if (
+                station_id.empty() ||
+                station_id == "radio" ||
+                station_id == "default"
+            ) {
+                station_id = "iradio";
+            }
+
+            ESP_LOGI(
+                TAG,
+                "MCP play_radio requested: %s",
+                station_id.c_str()
+            );
+
+            auto& genius = GeniusClient::GetInstance();
+
+            if (!genius.IsServerAvailable()) {
+                return std::string(
+                    "Maaf, server sedang offline sehingga saya tidak bisa melakukan itu."
+                );
+            }
+
+            Application::GetInstance().RunMediaAfterSpeaking(
+                [station_id]() {
+                    auto& genius = GeniusClient::GetInstance();
+                    if (!genius.IsServerAvailable()) {
+                        ESP_LOGW(TAG, "Deferred radio cancelled: Genius server offline");
+                        return;
+                    }
+                    genius.PlayRadio(station_id);
+                }
+            );
+
+            return true;
         }
-
-        ESP_LOGI(
-            TAG,
-            "MCP play_radio requested: %s",
-            station_id.c_str()
-        );
-
-        GeniusClient::GetInstance()
-            .PlayRadio(station_id);
-
-        return true;
-    }
-);
+    );
 
     // Display control
 #ifdef HAVE_LVGL
