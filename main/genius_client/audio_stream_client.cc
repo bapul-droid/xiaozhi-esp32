@@ -177,6 +177,7 @@ packet->frame_duration = 60;
             if (
                 !audio_service.PushPacketToDecodeQueue(
                     std::move(packet),
+                    true,
                     true
                 )
             ) {

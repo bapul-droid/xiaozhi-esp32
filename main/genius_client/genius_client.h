@@ -3,6 +3,7 @@
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <esp_timer.h>
 #include "audio_stream_client.h"
 
 #include <string>
@@ -36,6 +37,13 @@ bool GetNewsBulletin(
     int limit,
     std::string& bulletin
 );
+bool SearchKnowledge(
+    const std::string& query,
+    int limit,
+    std::string& result
+);
+
+bool IsServerAvailable();
 private:
     GeniusClient() = default;
     GeniusClient(const GeniusClient&) = delete;
@@ -65,11 +73,16 @@ private:
         const std::string& json_body
     );
 
+    void MarkServerAvailable();
+    void MarkServerUnavailable();
+
     std::string BuildDeviceId() const;
     TaskHandle_t audio_task_handle_ = nullptr;
     TaskHandle_t task_handle_ = nullptr;
 
     std::atomic<bool> audio_stop_requested_{false};
+    std::atomic<bool> server_available_{false};
+    std::atomic<int64_t> last_server_success_us_{0};
 
     bool registered_ = false;
 };

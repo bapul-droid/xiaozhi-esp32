@@ -211,6 +211,8 @@ void Application::Run() {
                 pending_listening_start_ = false;
                 StartListeningAudio();
             }
+
+            TryRunPendingMediaStart();
         }
 
         if (bits & MAIN_EVENT_TOGGLE_CHAT) {
@@ -263,6 +265,7 @@ void Application::Run() {
             clock_ticks_++;
             auto display = Board::GetInstance().GetDisplay();
             display->UpdateStatusBar();
+            CheckDisplaySleep();
 
             // Print debug info every 10 seconds
             if (clock_ticks_ % 10 == 0) {
@@ -271,6 +274,35 @@ void Application::Run() {
                 // SystemInfo::PrintTaskCpuUsage(pdMS_TO_TICKS(1000));
             }
         }
+    }
+}
+
+void Application::WakeDisplay() {
+    if (!lcd_sleeping_) {
+        return;
+    }
+
+    auto backlight = Board::GetInstance().GetBacklight();
+    if (backlight) {
+        backlight->RestoreBrightness();
+        lcd_sleeping_ = false;
+        ESP_LOGI(TAG, "LCD awake");
+    }
+}
+
+void Application::CheckDisplaySleep() {
+    constexpr int kLcdSleepSeconds = 30;
+
+    if (lcd_sleeping_ || GetDeviceState() != kDeviceStateIdle ||
+        clock_ticks_ < kLcdSleepSeconds) {
+        return;
+    }
+
+    auto backlight = Board::GetInstance().GetBacklight();
+    if (backlight) {
+        backlight->SetBrightness(0, false);
+        lcd_sleeping_ = true;
+        ESP_LOGI(TAG, "LCD sleep after %d seconds idle", kLcdSleepSeconds);
     }
 }
 
@@ -473,10 +505,13 @@ void Application::CheckNewVersion() {
         }
 
         display->SetStatus(Lang::Strings::ACTIVATION);
-        // Activation code is shown to the user and waiting for the user to input
-        if (ota_->HasActivationCode()) {
-            ShowActivationCode(ota_->GetActivationCode(), ota_->GetActivationMessage());
-        }
+// Activation code is shown to the user and waiting for the user to input
+if (ota_->HasActivationCode()) {
+    ESP_LOGW(TAG, "MINJI ACTIVATION CODE: %s",
+             ota_->GetActivationCode().c_str());
+
+    ShowActivationCode(ota_->GetActivationCode(), ota_->GetActivationMessage());
+}
 
         // This will block the loop until the activation is done or timeout
         for (int i = 0; i < 10; ++i) {
@@ -570,6 +605,7 @@ void Application::InitializeProtocol() {
                             SetDeviceState(kDeviceStateListening);
                         }
                     }
+                    TryRunPendingMediaStart();
                 });
             } else if (strcmp(state->valuestring, "sentence_start") == 0) {
                 auto text = cJSON_GetObjectItem(root, "text");
@@ -813,6 +849,9 @@ void Application::HandleStopListeningEvent() {
 }
 
 void Application::HandleWakeWordDetectedEvent() {
+    // Wake the screen immediately on the wake event, before conversation logic.
+    WakeDisplay();
+
     if (!protocol_) {
         return;
     }
@@ -820,6 +859,12 @@ void Application::HandleWakeWordDetectedEvent() {
     auto state = GetDeviceState();
     auto wake_word = audio_service_.GetLastWakeWord();
     ESP_LOGI(TAG, "Wake word detected: %s (state: %d)", wake_word.c_str(), (int)state);
+
+    // Local radio/music uses a separate Genius audio task and is not stopped by
+    // AbortSpeaking(). Stop it immediately on wake so the microphone gets a clean
+    // channel and the following voice command is not masked by the media itself.
+    CancelPendingMediaStart();
+    GeniusClient::GetInstance().StopAudio();
 
     if (state == kDeviceStateIdle) {
         BeginWakeWordInvoke(wake_word);
@@ -909,6 +954,9 @@ void Application::ContinueWakeWordInvoke(const std::string& wake_word) {
 
 void Application::HandleStateChangedEvent() {
     DeviceState new_state = state_machine_.GetState();
+
+    // LCD-only sleep: any state transition is real user/device activity.
+    WakeDisplay();
     clock_ticks_ = 0;
     // Any state change invalidates a pending deferred listening start;
     // the Listening case below re-arms it when needed.
@@ -992,6 +1040,9 @@ void Application::StartListeningAudio() {
     if (play_popup_on_listening_) {
         play_popup_on_listening_ = false;
         audio_service_.PlaySound(Lang::Sounds::OGG_POPUP);
+
+        ESP_LOGI(TAG, "Wake popup guard: 300 ms");
+        vTaskDelay(pdMS_TO_TICKS(300));
     }
 }
 
@@ -1012,6 +1063,48 @@ void Application::Schedule(std::function<void()>&& callback) {
     }
     xEventGroupSetBits(event_group_, MAIN_EVENT_SCHEDULE);
 }
+
+void Application::RunMediaAfterSpeaking(std::function<void()>&& callback) {
+    if (!callback) {
+        return;
+    }
+
+    if (GetDeviceState() == kDeviceStateSpeaking || !audio_service_.IsPlaybackIdle()) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        pending_media_start_ = std::move(callback);
+        ESP_LOGI(TAG, "Media start deferred until assistant TTS is drained");
+        return;
+    }
+
+    callback();
+}
+
+void Application::CancelPendingMediaStart() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (pending_media_start_) {
+        ESP_LOGI(TAG, "Pending media start cancelled");
+        pending_media_start_ = nullptr;
+    }
+}
+
+void Application::TryRunPendingMediaStart() {
+    if (GetDeviceState() == kDeviceStateSpeaking || !audio_service_.IsPlaybackIdle()) {
+        return;
+    }
+
+    std::function<void()> callback;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        callback = std::move(pending_media_start_);
+        pending_media_start_ = nullptr;
+    }
+
+    if (callback) {
+        ESP_LOGI(TAG, "Assistant TTS drained; starting deferred media");
+        callback();
+    }
+}
+
 
 void Application::AbortSpeaking(AbortReason reason) {
     ESP_LOGI(TAG, "Abort speaking");
