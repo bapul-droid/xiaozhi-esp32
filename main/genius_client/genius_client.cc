@@ -21,7 +21,7 @@ constexpr const char* TAG = "GeniusClient";
 
 // Alamat PC GeniusAI Core di jaringan rumah.
 constexpr const char* GENIUS_SERVER_URL =
-    "http://192.168.1.11:8000";
+    "http://192.168.1.89:8000";
 
 constexpr uint32_t REGISTER_RETRY_MS = 10000;
 constexpr uint32_t HEARTBEAT_INTERVAL_MS = 30000;
