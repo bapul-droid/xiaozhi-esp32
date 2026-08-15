@@ -83,21 +83,10 @@ void Application::Initialize() {
     callbacks.on_wake_word_detected = [this](const std::string& wake_word) {
         xEventGroupSetBits(event_group_, MAIN_EVENT_WAKE_WORD_DETECTED);
     };
-    callbacks.on_vad_change = [this](bool speaking) {
-        // Media Wake V2: VAD sees the beginning of human speech before the
-        // complete wake word. Move the actual stop to the main task so the
-        // audio callback remains lightweight and thread-safe.
-        if (speaking && GeniusClient::GetInstance().IsAudioPlaying()) {
-            Schedule([this]() {
-                auto& genius = GeniusClient::GetInstance();
-                if (genius.IsAudioPlaying()) {
-                    genius.RecordDiagnosticEvent("media_stopped_by_vad");
-                    ESP_LOGI(TAG, "Media Wake V2: voice detected, stopping media");
-                    CancelPendingMediaStart();
-                    genius.StopAudio();
-                }
-            });
-        }
+    callbacks.on_vad_change = [this](bool) {
+        // VAD must never stop local radio/music. The speaker output and the
+        // tail of assistant TTS can both look like speech to VAD. Media is
+        // interrupted only by a confirmed wake-word event.
         xEventGroupSetBits(event_group_, MAIN_EVENT_VAD_CHANGE);
     };
     callbacks.on_playback_drained = [this]() {
@@ -1106,6 +1095,14 @@ void Application::RunMediaAfterSpeaking(std::function<void()>&& callback) {
         return;
     }
 
+    // Media must not share the normal listening/VAD session. Returning to
+    // idle disables voice processing and restores wake-word detection, so a
+    // confirmed wake word can still interrupt playback safely.
+    if (GetDeviceState() == kDeviceStateListening) {
+        ESP_LOGI(TAG, "Leaving listening mode before media playback");
+        HandleStopListeningEvent();
+    }
+
     GeniusClient::GetInstance().RecordDiagnosticEvent("media_start_now");
     callback();
 }
@@ -1131,6 +1128,14 @@ void Application::TryRunPendingMediaStart() {
     }
 
     if (callback) {
+        // TTS normally leaves the device listening. End that session before
+        // local media starts; otherwise VAD hears the TTS tail or the speaker
+        // itself and immediately tears the stream down.
+        if (GetDeviceState() == kDeviceStateListening) {
+            ESP_LOGI(TAG, "Leaving listening mode before deferred media playback");
+            HandleStopListeningEvent();
+        }
+
         GeniusClient::GetInstance().RecordDiagnosticEvent("media_start_after_tts");
         ESP_LOGI(TAG, "Assistant TTS drained; starting deferred media");
         callback();
