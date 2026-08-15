@@ -16,6 +16,11 @@ public:
     // Aman dipanggil kembali setelah Wi-Fi reconnect.
     void Start();
 
+    // Crash Recorder v1: simpan marker ringan di RTC memory agar boot berikutnya
+    // dapat melaporkan aktivitas terakhir sebelum reset/crash.
+    void RecordDiagnosticState(int state);
+    void RecordDiagnosticEvent(const char* event);
+
     // Dipanggil oleh MCP tool untuk memutar musik lokal.
     void PlayLocal(
         const std::string& filename
@@ -23,7 +28,8 @@ public:
         StartLocalAudio(filename);
     }
 
-   void StopAudio();
+    void StopAudio();
+    bool IsAudioPlaying() const;
 
 void PlayRadio(
     const std::string& station_id
@@ -58,6 +64,8 @@ private:
     );
     bool RegisterDevice();
     bool SendHeartbeat();
+    bool SendBatteryTelemetry();
+    bool SendBootCrashReport();
     bool FetchNextCommand();
     bool GetJson(
         const std::string& endpoint,
@@ -85,6 +93,7 @@ private:
     std::atomic<int64_t> last_server_success_us_{0};
 
     bool registered_ = false;
+    bool boot_report_sent_ = false;
 };
 
 #endif

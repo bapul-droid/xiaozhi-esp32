@@ -1,0 +1,352 @@
+﻿D:\xiaozhi-esp32\main\audio\engines\afe_audio_engine.cc:230:             custom_wake_word_->Stop();
+D:\xiaozhi-esp32\main\audio\engines\lite_audio_engine.cc:61:         wake_word_->Stop();
+D:\xiaozhi-esp32\main\audio\wake_words\custom_wake_word.cc:146: void CustomWakeWord::Stop() {
+D:\xiaozhi-esp32\main\audio\wake_words\custom_wake_word.cc:167:     // Check running state inside lock to avoid TOCTOU race with Stop()
+D:\xiaozhi-esp32\main\audio\wake_words\custom_wake_word.h:33:     void Stop();
+D:\xiaozhi-esp32\main\audio\wake_words\esp_wake_word.cc:68: void EspWakeWord::Stop() {
+D:\xiaozhi-esp32\main\audio\wake_words\esp_wake_word.cc:81:     // Check running state inside lock to avoid TOCTOU race with Stop()
+D:\xiaozhi-esp32\main\audio\wake_words\esp_wake_word.h:26:     void Stop();
+D:\xiaozhi-esp32\main\audio\audio_service.cc:123:     service_stopped_.store(false);
+D:\xiaozhi-esp32\main\audio\audio_service.cc:125:         AS_EVENT_AUDIO_PROCESSOR_RUNNING | AS_EVENT_AUDIO_INPUT_STOP_REQUEST);
+D:\xiaozhi-esp32\main\audio\audio_service.cc:167: void AudioService::Stop() {
+D:\xiaozhi-esp32\main\audio\audio_service.cc:168:     esp_timer_stop(audio_power_timer_);
+D:\xiaozhi-esp32\main\audio\audio_service.cc:169:     service_stopped_.store(true);
+D:\xiaozhi-esp32\main\audio\audio_service.cc:192:         esp_timer_stop(audio_power_timer_);
+D:\xiaozhi-esp32\main\audio\audio_service.cc:242:             AS_EVENT_AUDIO_INPUT_STOP_REQUEST,
+D:\xiaozhi-esp32\main\audio\audio_service.cc:245:         if (service_stopped_.load()) {
+D:\xiaozhi-esp32\main\audio\audio_service.cc:246:             // ADC continuous mode keeps its hardware mutex from start until stop,
+D:\xiaozhi-esp32\main\audio\audio_service.cc:247:             // so the input task that started it must also stop it before exiting.
+D:\xiaozhi-esp32\main\audio\audio_service.cc:254:         if (bits & AS_EVENT_AUDIO_INPUT_STOP_REQUEST) {
+D:\xiaozhi-esp32\main\audio\audio_service.cc:255:             xEventGroupClearBits(event_group_, AS_EVENT_AUDIO_INPUT_STOP_REQUEST);
+D:\xiaozhi-esp32\main\audio\audio_service.cc:258:             // enabled after the timer posted the stop request.
+D:\xiaozhi-esp32\main\audio\audio_service.cc:277:                 ESP_LOGW(TAG, "Audio testing queue is full, stopping audio testing");
+D:\xiaozhi-esp32\main\audio\audio_service.cc:311:     ESP_LOGW(TAG, "Audio input task stopped");
+D:\xiaozhi-esp32\main\audio\audio_service.cc:318:             return !audio_playback_queue_.empty() || service_stopped_.load();
+D:\xiaozhi-esp32\main\audio\audio_service.cc:320:         if (service_stopped_.load()) {
+D:\xiaozhi-esp32\main\audio\audio_service.cc:331:             esp_timer_stop(audio_power_timer_);
+D:\xiaozhi-esp32\main\audio\audio_service.cc:360:     ESP_LOGW(TAG, "Audio output task stopped");
+D:\xiaozhi-esp32\main\audio\audio_service.cc:367:             return service_stopped_.load() ||
+D:\xiaozhi-esp32\main\audio\audio_service.cc:371:         if (service_stopped_.load()) {
+D:\xiaozhi-esp32\main\audio\audio_service.cc:428:             if (decoded && generation == playback_generation_ && !service_stopped_.load()) {
+D:\xiaozhi-esp32\main\audio\audio_service.cc:497:     ESP_LOGW(TAG, "Opus codec task stopped");
+D:\xiaozhi-esp32\main\audio\audio_service.cc:558:          * whole input pipeline when the send queue stops being drained (e.g. network
+D:\xiaozhi-esp32\main\audio\audio_service.cc:585:                 return service_stopped_.load() ||
+D:\xiaozhi-esp32\main\audio\audio_service.cc:592:     if (service_stopped_.load()) {
+D:\xiaozhi-esp32\main\audio\audio_service.cc:712:         esp_timer_stop(audio_power_timer_);
+D:\xiaozhi-esp32\main\audio\audio_service.cc:783:         // ADC continuous start/stop must run in the same task. Wake the audio
+D:\xiaozhi-esp32\main\audio\audio_service.cc:785:         xEventGroupSetBits(event_group_, AS_EVENT_AUDIO_INPUT_STOP_REQUEST);
+D:\xiaozhi-esp32\main\audio\audio_service.cc:794:         esp_timer_stop(audio_power_timer_);
+D:\xiaozhi-esp32\main\audio\audio_service.h:53: #define AS_EVENT_AUDIO_INPUT_STOP_REQUEST   (1 << 4)
+D:\xiaozhi-esp32\main\audio\audio_service.h:115:     void Stop();
+D:\xiaozhi-esp32\main\audio\audio_service.h:191:     std::atomic<bool> service_stopped_{true};
+D:\xiaozhi-esp32\main\audio\wake_word.h:19:     virtual void Stop() = 0;
+D:\xiaozhi-esp32\main\boards\alientek\atk-dnesp32s3-box0\atk_dnesp32s3_box0.cc:104:                             esp_timer_stop(self->power_manager_->timer_handle_);
+D:\xiaozhi-esp32\main\boards\alientek\atk-dnesp32s3-box0\atk_dnesp32s3_box0.cc:154:                 esp_timer_stop(power_manager_->timer_handle_);
+D:\xiaozhi-esp32\main\boards\alientek\atk-dnesp32s3-box0\atk_dnesp32s3_box0.cc:210:                 Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\alientek\atk-dnesp32s3-box0\atk_dnesp32s3_box0.cc:216:                 esp_timer_stop(power_manager_->timer_handle_);
+D:\xiaozhi-esp32\main\boards\alientek\atk-dnesp32s3-box0\power_manager.h:161:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\alientek\atk-dnesp32s3-box2-4g\atk_dnesp32s3_box2.cc:63:                         esp_timer_stop(self->power_manager_->timer_handle_);
+D:\xiaozhi-esp32\main\boards\alientek\atk-dnesp32s3-box2-4g\atk_dnesp32s3_box2.cc:108:                 esp_timer_stop(power_manager_->timer_handle_);
+D:\xiaozhi-esp32\main\boards\alientek\atk-dnesp32s3-box2-4g\atk_dnesp32s3_box2.cc:292:                 esp_timer_stop(self->power_manager_->timer_handle_);
+D:\xiaozhi-esp32\main\boards\alientek\atk-dnesp32s3-box2-4g\power_manager.h:163:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\alientek\atk-dnesp32s3-box2-wifi\atk_dnesp32s3_box2.cc:63:                         esp_timer_stop(self->power_manager_->timer_handle_);
+D:\xiaozhi-esp32\main\boards\alientek\atk-dnesp32s3-box2-wifi\atk_dnesp32s3_box2.cc:108:                 esp_timer_stop(power_manager_->timer_handle_);
+D:\xiaozhi-esp32\main\boards\alientek\atk-dnesp32s3-box2-wifi\atk_dnesp32s3_box2.cc:272:                 esp_timer_stop(self->power_manager_->timer_handle_);
+D:\xiaozhi-esp32\main\boards\alientek\atk-dnesp32s3-box2-wifi\power_manager.h:163:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\alientek\atk-dnesp32s3-box3\atk_dnesp32s3_box3.cc:75:                         esp_timer_stop(self->power_manager_->timer_handle_);
+D:\xiaozhi-esp32\main\boards\alientek\atk-dnesp32s3-box3\atk_dnesp32s3_box3.cc:120:                 esp_timer_stop(power_manager_ ->timer_handle_);
+D:\xiaozhi-esp32\main\boards\alientek\atk-dnesp32s3-box3\atk_dnesp32s3_box3.cc:333:                 esp_timer_stop(self->power_manager_->timer_handle_);
+D:\xiaozhi-esp32\main\boards\alientek\atk-dnesp32s3-box3\power_manager.h:163:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\alientek\atk-dnesp32s3m-wifi\atk_dnesp32s3m.cc:72:             Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\bread-compact-esp32\esp32_bread_board.cc:126:             Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\bread-compact-esp32-lcd\esp32_bread_board_lcd.cc:159:             Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\bread-compact-ml307\compact_ml307_board.cc:118:             Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\bread-compact-nt26\compact_nt26_board.cc:102:             Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\bread-compact-wifi\compact_wifi_board.cc:116:             Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\common\adc_battery_monitor.cc:63:         esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\common\backlight.cc:27:         esp_timer_stop(transition_timer_);
+D:\xiaozhi-esp32\main\boards\common\backlight.cc:72:         esp_timer_stop(transition_timer_);
+D:\xiaozhi-esp32\main\boards\common\backlight.cc:80:         esp_timer_stop(transition_timer_);
+D:\xiaozhi-esp32\main\boards\common\backlight.cc:112:     ledc_stop(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 0);
+D:\xiaozhi-esp32\main\boards\common\ethernet_board.cc:173:         case ETHERNET_EVENT_STOP:
+D:\xiaozhi-esp32\main\boards\common\ethernet_board.cc:174:             ESP_LOGI(TAG, "Ethernet stopped");
+D:\xiaozhi-esp32\main\boards\common\nt26_board.cc:38:         esp_timer_stop(network_ready_timer_);
+D:\xiaozhi-esp32\main\boards\common\nt26_board.cc:43:         modem_->Stop();
+D:\xiaozhi-esp32\main\boards\common\nt26_board.cc:85:                 esp_timer_stop(network_ready_timer_);
+D:\xiaozhi-esp32\main\boards\common\nt26_board.cc:92:                 esp_timer_stop(network_ready_timer_);
+D:\xiaozhi-esp32\main\boards\common\nt26_board.cc:93:                 ScheduleAsyncStop();
+D:\xiaozhi-esp32\main\boards\common\nt26_board.cc:97:                 esp_timer_stop(network_ready_timer_);
+D:\xiaozhi-esp32\main\boards\common\nt26_board.cc:98:                 ScheduleAsyncStop();
+D:\xiaozhi-esp32\main\boards\common\nt26_board.cc:106:                 esp_timer_stop(network_ready_timer_);
+D:\xiaozhi-esp32\main\boards\common\nt26_board.cc:107:                 ScheduleAsyncStop();
+D:\xiaozhi-esp32\main\boards\common\nt26_board.cc:130: void Nt26Board::ScheduleAsyncStop() {
+D:\xiaozhi-esp32\main\boards\common\nt26_board.cc:133:             modem_->Stop();
+D:\xiaozhi-esp32\main\boards\common\nt26_board.h:46:     void ScheduleAsyncStop();
+D:\xiaozhi-esp32\main\boards\common\power_save_timer.cc:26:     esp_timer_stop(power_save_timer_);
+D:\xiaozhi-esp32\main\boards\common\power_save_timer.cc:43:         ESP_ERROR_CHECK(esp_timer_stop(power_save_timer_));
+D:\xiaozhi-esp32\main\boards\common\rndis_board.cc:67:         case IOT_ETH_EVENT_STOP:
+D:\xiaozhi-esp32\main\boards\common\rndis_board.cc:68:             ESP_LOGI(TAG, "IOT_ETH_EVENT_STOP");
+D:\xiaozhi-esp32\main\boards\common\sleep_timer.cc:32:     esp_timer_stop(sleep_timer_);
+D:\xiaozhi-esp32\main\boards\common\sleep_timer.cc:49:         ESP_ERROR_CHECK(esp_timer_stop(sleep_timer_));
+D:\xiaozhi-esp32\main\boards\common\sleep_timer.cc:95:                     lvgl_port_stop();
+D:\xiaozhi-esp32\main\boards\common\sleep_timer.cc:102:                     lvgl_port_resume();
+D:\xiaozhi-esp32\main\boards\common\wifi_board.cc:43:         esp_timer_stop(connect_timer_);
+D:\xiaozhi-esp32\main\boards\common\wifi_board.cc:117:             // Stop timeout timer
+D:\xiaozhi-esp32\main\boards\common\wifi_board.cc:118:             esp_timer_stop(connect_timer_);
+D:\xiaozhi-esp32\main\boards\common\wifi_board.cc:163:     WifiManager::GetInstance().StopStation();
+D:\xiaozhi-esp32\main\boards\common\wifi_board.cc:209:             // Stop any ongoing connection attempt
+D:\xiaozhi-esp32\main\boards\common\wifi_board.cc:210:             esp_timer_stop(board->connect_timer_);
+D:\xiaozhi-esp32\main\boards\common\wifi_board.cc:211:             WifiManager::GetInstance().StopStation();
+D:\xiaozhi-esp32\main\boards\common\wifi_board.cc:226:     // Stop any ongoing connection attempt
+D:\xiaozhi-esp32\main\boards\common\wifi_board.cc:227:     esp_timer_stop(connect_timer_);
+D:\xiaozhi-esp32\main\boards\common\wifi_board.cc:228:     WifiManager::GetInstance().StopStation();
+D:\xiaozhi-esp32\main\boards\doit-s3-aibox\doit_s3_aibox.cc:68:             Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\du-chatx\power_manager.h:154:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\electron-bot\electron_bot_controller.cc:529:         mcp_server.AddTool("self.electron.stop", "立即停止", PropertyList(),
+D:\xiaozhi-esp32\main\boards\electron-bot\oscillator.cc:25:     stop_ = false;
+D:\xiaozhi-esp32\main\boards\electron-bot\oscillator.cc:94:     ESP_ERROR_CHECK(ledc_stop(ledc_speed_mode_, ledc_channel_, 0));
+D:\xiaozhi-esp32\main\boards\electron-bot\oscillator.cc:112:         if (!stop_) {
+D:\xiaozhi-esp32\main\boards\electron-bot\oscillator.h:38:     void Stop() { stop_ = true; };
+D:\xiaozhi-esp32\main\boards\electron-bot\oscillator.h:39:     void Play() { stop_ = false; };
+D:\xiaozhi-esp32\main\boards\electron-bot\oscillator.h:70:     //-- Oscillation mode. If true, the servo is stopped
+D:\xiaozhi-esp32\main\boards\electron-bot\oscillator.h:71:     bool stop_;
+D:\xiaozhi-esp32\main\boards\electron-bot\power_manager.h:116:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\electron-bot\websocket_control_server.cc:20:     Stop();
+D:\xiaozhi-esp32\main\boards\electron-bot\websocket_control_server.cc:109: void WebSocketControlServer::Stop() {
+D:\xiaozhi-esp32\main\boards\electron-bot\websocket_control_server.cc:111:         httpd_stop(server_handle_);
+D:\xiaozhi-esp32\main\boards\electron-bot\websocket_control_server.cc:114:         ESP_LOGI(TAG, "WebSocket control server stopped");
+D:\xiaozhi-esp32\main\boards\electron-bot\websocket_control_server.h:15:     void Stop();
+D:\xiaozhi-esp32\main\boards\espressif\esp-hi\adc_pdm_audio_codec.cc:134:         esp_timer_stop(output_timer_);
+D:\xiaozhi-esp32\main\boards\espressif\esp-hi\adc_pdm_audio_codec.cc:203:             esp_timer_stop(output_timer_);
+D:\xiaozhi-esp32\main\boards\espressif\esp-hi\adc_pdm_audio_codec.cc:224:             esp_timer_stop(output_timer_);
+D:\xiaozhi-esp32\main\boards\espressif\esp-hi\adc_pdm_audio_codec.cc:240:     // continuous driver requires start and stop to run in the same task.
+D:\xiaozhi-esp32\main\boards\espressif\esp-hi\emoji_display.cc:70:         anim_player_update(player_handle_, PLAYER_ACTION_STOP);
+D:\xiaozhi-esp32\main\boards\espressif\esp-hi\emoji_display.cc:100: void EmojiPlayer::StopPlayer()
+D:\xiaozhi-esp32\main\boards\espressif\esp-hi\emoji_display.cc:103:         anim_player_update(player_handle_, PLAYER_ACTION_STOP);
+D:\xiaozhi-esp32\main\boards\espressif\esp-hi\emoji_display.h:24:     void StopPlayer();
+D:\xiaozhi-esp32\main\boards\espressif\esp-hi\esp_hi.cc:308:             "forward: 向前移动\nbackward: 向后移动\nturn_left: 向左转\nturn_right: 向右转\nstop: 立即停止当前动作", 
+D:\xiaozhi-esp32\main\boards\espressif\esp-hi\esp_hi.cc:321:                 } else if (action == "stop") {
+D:\xiaozhi-esp32\main\boards\espressif\esp-sensairshuttle\adc_pdm_audio_codec.cc:134:         esp_timer_stop(output_timer_);
+D:\xiaozhi-esp32\main\boards\espressif\esp-sensairshuttle\adc_pdm_audio_codec.cc:203:             esp_timer_stop(output_timer_);
+D:\xiaozhi-esp32\main\boards\espressif\esp-sensairshuttle\adc_pdm_audio_codec.cc:224:             esp_timer_stop(output_timer_);
+D:\xiaozhi-esp32\main\boards\espressif\esp-sensairshuttle\adc_pdm_audio_codec.cc:240:     // continuous driver requires start and stop to run in the same task.
+D:\xiaozhi-esp32\main\boards\espressif\esp-sparkbot\esp_sparkbot_board.cc:183:             .stop_bits = UART_STOP_BITS_1,
+D:\xiaozhi-esp32\main\boards\espressif\esp-vocat\esp_vocat.cc:486:             esp_timer_stop(emotion_reset_timer_);
+D:\xiaozhi-esp32\main\boards\espressif\esp-vocat\esp_vocat.cc:1010:         // Stop tasks
+D:\xiaozhi-esp32\main\boards\espressif\esp-vocat\esp_vocat.cc:1046:             esp_timer_stop(emotion_reset_timer_);
+D:\xiaozhi-esp32\main\boards\espressif\esp32-s3-korvo-2-v3.0\power_manager.h:213:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\espressif\esp32-s3-korvo-2-v3.0-rndis\power_manager.h:212:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\espressif\esp32-s3-lcd-ev-board\esp32-s3-lcd-ev-board.cc:165:             Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\espressif\esp32-s3-lcd-ev-board-2\esp32-s3-lcd-ev-board-2.cc:166:             Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\genjutech-s3-1.54tft\genjutech-s3-1.54tft.cc:121:         //     Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\genjutech-s3-1.54tft\power_manager.h:154:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\jiuchuan-s3\power_manager.h:134:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\kevin\box-2\kevin_box_board.cc:170:             app.StopListening();
+D:\xiaozhi-esp32\main\boards\kevin\c3\kevin_c3_board.cc:58:             Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\kevin\sp-v3-dev\kevin-sp-v3_board.cc:50:             Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\kevin\sp-v4-dev\kevin-sp-v4_board.cc:64:             Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\kevin\yuying-313lcd\kevin_yuying_313lcd.cc:134:             Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\labplus\ledong-v2\labplus_ledong_v2.cc:67:             Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\labplus\mpython-v3\mpython_pro.cc:64:             Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\lceda-course-examples\eda-robot-pro\eda_dog_controller.cc:288:     mcp_server.AddTool("self.dog.stop", "立即停止", PropertyList(),
+D:\xiaozhi-esp32\main\boards\lceda-course-examples\eda-robot-pro\eda_robot_pro.cc:104:             Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\lceda-course-examples\eda-robot-pro\oscillator.cc:37:     stop_ = false;
+D:\xiaozhi-esp32\main\boards\lceda-course-examples\eda-robot-pro\oscillator.cc:106:     ESP_ERROR_CHECK(ledc_stop(ledc_speed_mode_, ledc_channel_, 0));
+D:\xiaozhi-esp32\main\boards\lceda-course-examples\eda-robot-pro\oscillator.cc:124:         if (!stop_) {
+D:\xiaozhi-esp32\main\boards\lceda-course-examples\eda-robot-pro\oscillator.h:46:   void Stop() { stop_ = true; };
+D:\xiaozhi-esp32\main\boards\lceda-course-examples\eda-robot-pro\oscillator.h:47:   void Play() { stop_ = false; };
+D:\xiaozhi-esp32\main\boards\lceda-course-examples\eda-robot-pro\oscillator.h:78:   //-- Oscillation mode. If true, the servo is stopped
+D:\xiaozhi-esp32\main\boards\lceda-course-examples\eda-robot-pro\oscillator.h:79:   bool stop_;
+D:\xiaozhi-esp32\main\boards\lceda-course-examples\eda-super-bear\eda_super_bear_controller.cc:359:         mcp_server.AddTool("self.edarobot.stop", "立即停止", PropertyList(),
+D:\xiaozhi-esp32\main\boards\lceda-course-examples\eda-super-bear\oscillator.cc:37:     stop_ = false;
+D:\xiaozhi-esp32\main\boards\lceda-course-examples\eda-super-bear\oscillator.cc:106:     ESP_ERROR_CHECK(ledc_stop(ledc_speed_mode_, ledc_channel_, 0));
+D:\xiaozhi-esp32\main\boards\lceda-course-examples\eda-super-bear\oscillator.cc:124:         if (!stop_) {
+D:\xiaozhi-esp32\main\boards\lceda-course-examples\eda-super-bear\oscillator.h:46:     void Stop() { stop_ = true; };
+D:\xiaozhi-esp32\main\boards\lceda-course-examples\eda-super-bear\oscillator.h:47:     void Play() { stop_ = false; };
+D:\xiaozhi-esp32\main\boards\lceda-course-examples\eda-super-bear\oscillator.h:78:     //-- Oscillation mode. If true, the servo is stopped
+D:\xiaozhi-esp32\main\boards\lceda-course-examples\eda-super-bear\oscillator.h:79:     bool stop_;
+D:\xiaozhi-esp32\main\boards\lckfb\szpi-esp32s3\lichuang_dev_board.cc:124:                 Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\m5stack\cardputer-adv\m5stack_cardputer_adv.cc:247:                 // Match boot button behavior (start/stop chat depending on current state).
+D:\xiaozhi-esp32\main\boards\m5stack\cardputer-adv\m5stack_cardputer_adv.cc:286:         // Stop config AP mode and trigger reconnection with new credentials
+D:\xiaozhi-esp32\main\boards\m5stack\cardputer-adv\m5stack_cardputer_adv.cc:289:             wifi_manager.StopConfigAp();
+D:\xiaozhi-esp32\main\boards\m5stack\stopwatch\m5stack_stopwatch.cc:16: #define TAG "M5StackStopwatch"
+D:\xiaozhi-esp32\main\boards\m5stack\stopwatch\m5stack_stopwatch.cc:88: class M5StackStopwatchBoard : public WifiBoard {
+D:\xiaozhi-esp32\main\boards\m5stack\stopwatch\m5stack_stopwatch.cc:230:     M5StackStopwatchBoard()
+D:\xiaozhi-esp32\main\boards\m5stack\stopwatch\m5stack_stopwatch.cc:292: DECLARE_BOARD(M5StackStopwatchBoard);
+D:\xiaozhi-esp32\main\boards\magiclick\2p4\magiclick_2p4_board.cc:121:             Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\magiclick\2p5\magiclick_2p5_board.cc:258:             Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\magiclick\2p5\power_manager.h:162:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\magiclick\c3\magiclick_c3_board.cc:108:             Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\magiclick\c3-v2\magiclick_c3_v2_board.cc:144:             Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\minsi-k08-dual\power_manager.h:155:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\movecall\moji2-esp32c5\movecall_moji2_esp32s3.cc:347:                 Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\nologo\xingzhi-abs-2.0\customlcddisplay.h:57:                 ESP_LOGI("CustomLcdDisplay", "Init timer stopped, custom UI ready");
+D:\xiaozhi-esp32\main\boards\nologo\xingzhi-abs-2.0\power_manager.h:73:                     esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\nologo\xingzhi-abs-2.0\power_manager.h:251:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\nologo\xingzhi-abs-2.0\power_manager.h:255:             esp_timer_stop(power_timer_handle_);
+D:\xiaozhi-esp32\main\boards\nologo\xingzhi-cube-1.54tft-wifi\power_manager.h:154:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\nologo\xingzhi-metal-1.54-wifi\cst816x.cc:174:                         ESP_LOGI(TAG, "Long press ended at (%d, %d) → Stop volume adjust", current_event.x, current_event.y);
+D:\xiaozhi-esp32\main\boards\nologo\xingzhi-metal-1.54-wifi\cst816x.cc:201:                     ESP_LOGI(TAG, "Volume reached limit (%d), stop adjusting", new_vol);
+D:\xiaozhi-esp32\main\boards\nologo\xingzhi-metal-1.54-wifi\power_manager.h:73:                     esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\nologo\xingzhi-metal-1.54-wifi\power_manager.h:251:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\nologo\xingzhi-metal-1.54-wifi\power_manager.h:255:             esp_timer_stop(power_timer_handle_);
+D:\xiaozhi-esp32\main\boards\nulllab-ai-vox-v3\power_manager.h:128:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\otto-robot\oscillator.cc:37:     stop_ = false;
+D:\xiaozhi-esp32\main\boards\otto-robot\oscillator.cc:106:     ESP_ERROR_CHECK(ledc_stop(ledc_speed_mode_, ledc_channel_, 0));
+D:\xiaozhi-esp32\main\boards\otto-robot\oscillator.cc:124:         if (!stop_) {
+D:\xiaozhi-esp32\main\boards\otto-robot\oscillator.h:46:     void Stop() { stop_ = true; };
+D:\xiaozhi-esp32\main\boards\otto-robot\oscillator.h:47:     void Play() { stop_ = false; };
+D:\xiaozhi-esp32\main\boards\otto-robot\oscillator.h:78:     //-- Oscillation mode. If true, the servo is stopped
+D:\xiaozhi-esp32\main\boards\otto-robot\oscillator.h:79:     bool stop_;
+D:\xiaozhi-esp32\main\boards\otto-robot\otto_controller.cc:79:                 PowerManager::PauseBatteryUpdate();  // 动作开始时暂停电量更新
+D:\xiaozhi-esp32\main\boards\otto-robot\otto_controller.cc:419:                 PowerManager::ResumeBatteryUpdate();  // 动作结束时恢复电量更新
+D:\xiaozhi-esp32\main\boards\otto-robot\otto_controller.cc:708:         mcp_server.AddTool("self.otto.stop", "立即停止所有动作并复位", PropertyList(),
+D:\xiaozhi-esp32\main\boards\otto-robot\otto_controller.cc:715:                                PowerManager::ResumeBatteryUpdate();  // 停止动作时恢复电量更新
+D:\xiaozhi-esp32\main\boards\otto-robot\otto_emoji_display.cc:115:         esp_timer_stop(preview_timer_);
+D:\xiaozhi-esp32\main\boards\otto-robot\otto_emoji_display.cc:137:         gif_controller_->Stop();
+D:\xiaozhi-esp32\main\boards\otto-robot\otto_emoji_display.cc:141:     esp_timer_stop(preview_timer_);
+D:\xiaozhi-esp32\main\boards\otto-robot\otto_robot.cc:85:             ledc_stop(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL, 0);
+D:\xiaozhi-esp32\main\boards\otto-robot\otto_robot.cc:143:             ledc_stop(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL, 0);
+D:\xiaozhi-esp32\main\boards\otto-robot\otto_robot.cc:260:             ledc_stop(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL, 0);
+D:\xiaozhi-esp32\main\boards\otto-robot\power_manager.h:28:     inline static bool battery_update_paused_ = false;  // 静态标志：是否暂停电量更新
+D:\xiaozhi-esp32\main\boards\otto-robot\power_manager.h:34:       if (battery_update_paused_) {
+D:\xiaozhi-esp32\main\boards\otto-robot\power_manager.h:135:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\otto-robot\power_manager.h:148:     static void PauseBatteryUpdate() { battery_update_paused_ = true; }
+D:\xiaozhi-esp32\main\boards\otto-robot\power_manager.h:149:     static void ResumeBatteryUpdate() { battery_update_paused_ = false; }
+D:\xiaozhi-esp32\main\boards\otto-robot\websocket_control_server.cc:19:     Stop();
+D:\xiaozhi-esp32\main\boards\otto-robot\websocket_control_server.cc:111: void WebSocketControlServer::Stop() {
+D:\xiaozhi-esp32\main\boards\otto-robot\websocket_control_server.cc:113:         httpd_stop(server_handle_);
+D:\xiaozhi-esp32\main\boards\otto-robot\websocket_control_server.cc:116:         ESP_LOGI(TAG, "WebSocket server stopped");
+D:\xiaozhi-esp32\main\boards\otto-robot\websocket_control_server.h:16:     void Stop();
+D:\xiaozhi-esp32\main\boards\sensecap-watcher\sscma_camera.cc:401:                 ESP_LOGI(TAG, "Stop inference (enable=%d state=%d)", this_->inference_en, Application::GetInstance().GetDeviceState());
+D:\xiaozhi-esp32\main\boards\spotpear\sp-esp32-s3-1.28-box\power_manager.h:156:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\spotpear\sp-esp32-s3-1.28-box\sp-esp32-s3-1.28-box.cc:408:             esp_timer_stop(touchpad_timer_);
+D:\xiaozhi-esp32\main\boards\spotpear\sp-esp32-s3-1.54-muma\power_manager.h:154:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\surfer-c3-1.14tft\power_manager.h:163:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\waveshare\esp32-c6-touch-amoled-1.43\esp32-c6-touch-amoled-1.43.cc:173:             Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\waveshare\esp32-s3-touch-amoled-1.8\esp32-s3-touch-amoled-1.8.cc:207:     void StopDimTimer() {
+D:\xiaozhi-esp32\main\boards\waveshare\esp32-s3-touch-amoled-1.8\esp32-s3-touch-amoled-1.8.cc:209:         esp_timer_stop(dim_timer_);
+D:\xiaozhi-esp32\main\boards\waveshare\esp32-s3-touch-amoled-1.8\esp32-s3-touch-amoled-1.8.cc:420:                 StopDimTimer();
+D:\xiaozhi-esp32\main\boards\wdmomo\esp32-cgc-144\power_manager.h:154:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\wdmomo\esp32-cgc-144\power_manager_lite.h:153:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\xmini\c3\xmini_c3_board.cc:162:                 Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\xmini\c3-4g\xmini_c3_4g_board.cc:150:                 Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\xmini\c3-v3\xmini_c3_board.cc:150:                 Application::GetInstance().StopListening();
+D:\xiaozhi-esp32\main\boards\xorigin\aipi-lite\power_manager.h:157:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\yunliao-s3\yunliao_s3.cc:195:         app.StopListening();
+D:\xiaozhi-esp32\main\boards\zectrix\zectrix-s3-epaper-4.2\custom_lcd_display.cc:211:     stop_refresh_task();
+D:\xiaozhi-esp32\main\boards\zectrix\zectrix-s3-epaper-4.2\custom_lcd_display.cc:262: void CustomLcdDisplay::stop_refresh_task() {
+D:\xiaozhi-esp32\main\boards\zectrix\zectrix-s3-epaper-4.2\custom_lcd_display.h:127:     void stop_refresh_task();
+D:\xiaozhi-esp32\main\boards\zectrix\zectrix-s3-epaper-4.2\rtc_pcf8563.cc:127:     StopCountdownTimer();
+D:\xiaozhi-esp32\main\boards\zectrix\zectrix-s3-epaper-4.2\rtc_pcf8563.cc:138: bool RtcPcf8563::StopCountdownTimer() {
+D:\xiaozhi-esp32\main\boards\zectrix\zectrix-s3-epaper-4.2\rtc_pcf8563.h:27:     bool StopCountdownTimer();
+D:\xiaozhi-esp32\main\boards\zhengchen\1.54tft-wifi\power_manager.h:192:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\zhengchen\1.54tft-wifi\zhengchen-1.54tft-wifi.cc:44:                 ESP_LOGI("PowerManager", "Charging stopped");
+D:\xiaozhi-esp32\main\boards\zhengchen\cam\power_manager.h:191:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\boards\zhengchen\cam-ml307\power_manager.h:191:             esp_timer_stop(timer_handle_);
+D:\xiaozhi-esp32\main\display\lvgl_display\gif\lvgl_gif.cc:72:         lv_timer_resume(timer_);
+D:\xiaozhi-esp32\main\display\lvgl_display\gif\lvgl_gif.cc:82: void LvglGif::Pause() {
+D:\xiaozhi-esp32\main\display\lvgl_display\gif\lvgl_gif.cc:85:         lv_timer_pause(timer_);
+D:\xiaozhi-esp32\main\display\lvgl_display\gif\lvgl_gif.cc:86:         ESP_LOGD(TAG, "GIF animation paused");
+D:\xiaozhi-esp32\main\display\lvgl_display\gif\lvgl_gif.cc:90: void LvglGif::Resume() {
+D:\xiaozhi-esp32\main\display\lvgl_display\gif\lvgl_gif.cc:92:         ESP_LOGW(TAG, "GIF not loaded, cannot resume");
+D:\xiaozhi-esp32\main\display\lvgl_display\gif\lvgl_gif.cc:98:         lv_timer_resume(timer_);
+D:\xiaozhi-esp32\main\display\lvgl_display\gif\lvgl_gif.cc:99:         ESP_LOGD(TAG, "GIF animation resumed");
+D:\xiaozhi-esp32\main\display\lvgl_display\gif\lvgl_gif.cc:103: void LvglGif::Stop() {
+D:\xiaozhi-esp32\main\display\lvgl_display\gif\lvgl_gif.cc:106:         lv_timer_pause(timer_);
+D:\xiaozhi-esp32\main\display\lvgl_display\gif\lvgl_gif.cc:118:         ESP_LOGD(TAG, "GIF animation stopped and rewound");
+D:\xiaozhi-esp32\main\display\lvgl_display\gif\lvgl_gif.cc:206:             lv_timer_pause(timer_);
+D:\xiaozhi-esp32\main\display\lvgl_display\gif\lvgl_gif.cc:235:     // Stop and delete timer
+D:\xiaozhi-esp32\main\display\lvgl_display\gif\lvgl_gif.h:27:      * Pause GIF animation
+D:\xiaozhi-esp32\main\display\lvgl_display\gif\lvgl_gif.h:29:     void Pause();
+D:\xiaozhi-esp32\main\display\lvgl_display\gif\lvgl_gif.h:32:      * Resume GIF animation
+D:\xiaozhi-esp32\main\display\lvgl_display\gif\lvgl_gif.h:34:     void Resume();
+D:\xiaozhi-esp32\main\display\lvgl_display\gif\lvgl_gif.h:37:      * Stop GIF animation and rewind to first frame
+D:\xiaozhi-esp32\main\display\lvgl_display\gif\lvgl_gif.h:39:     void Stop();
+D:\xiaozhi-esp32\main\display\lvgl_display\lvgl_display.cc:116:         esp_timer_stop(notification_timer_);
+D:\xiaozhi-esp32\main\display\lvgl_display\lvgl_display.cc:187:     esp_timer_stop(notification_timer_);
+D:\xiaozhi-esp32\main\display\emote_display.cc:224: bool EmoteDisplay::StopAnimDialog()
+D:\xiaozhi-esp32\main\display\emote_display.cc:226:     ESP_LOGI(TAG, "StopAnimDialog");
+D:\xiaozhi-esp32\main\display\emote_display.cc:228:         return emote_stop_anim_dialog(emote_handle_);
+D:\xiaozhi-esp32\main\display\emote_display.h:26:     bool StopAnimDialog();
+D:\xiaozhi-esp32\main\display\lcd_display.cc:298:         gif_controller_->Stop();
+D:\xiaozhi-esp32\main\display\lcd_display.cc:303:         esp_timer_stop(preview_timer_);
+D:\xiaozhi-esp32\main\display\lcd_display.cc:1033:         esp_timer_stop(preview_timer_);
+D:\xiaozhi-esp32\main\display\lcd_display.cc:1053:         gif_controller_->Stop();
+D:\xiaozhi-esp32\main\display\lcd_display.cc:1057:     esp_timer_stop(preview_timer_);
+D:\xiaozhi-esp32\main\display\lcd_display.cc:1135:                 gif_controller_->Stop();
+D:\xiaozhi-esp32\main\display\lcd_display.cc:1147:     // Stop any running GIF animation in the same lock scope as setting new image
+D:\xiaozhi-esp32\main\display\lcd_display.cc:1150:         gif_controller_->Stop();
+D:\xiaozhi-esp32\main\display\lcd_display.cc:1183:         // Stop GIF animation if running
+D:\xiaozhi-esp32\main\display\lcd_display.cc:1185:             gif_controller_->Stop();
+D:\xiaozhi-esp32\main\genius_client\genius_client.cc:534:         strcmp(action_text, "stop_audio") == 0
+D:\xiaozhi-esp32\main\genius_client\genius_client.cc:540:         ESP_LOGI(TAG, "Audio stop requested");
+D:\xiaozhi-esp32\main\genius_client\genius_client.cc:556: void GeniusClient::StopAudio()
+D:\xiaozhi-esp32\main\genius_client\genius_client.cc:562:     ESP_LOGI(TAG, "Audio stopped by MCP");
+D:\xiaozhi-esp32\main\genius_client\genius_client.cc:566: void GeniusClient::PlayRadio(
+D:\xiaozhi-esp32\main\genius_client\genius_client.h:18:     void PlayLocal(
+D:\xiaozhi-esp32\main\genius_client\genius_client.h:24:     void StopAudio();
+D:\xiaozhi-esp32\main\genius_client\genius_client.h:26:     void PlayRadio(
+D:\xiaozhi-esp32\main\led\circular_strip.cc:45:     esp_timer_stop(strip_timer_);
+D:\xiaozhi-esp32\main\led\circular_strip.cc:54:     esp_timer_stop(strip_timer_);
+D:\xiaozhi-esp32\main\led\circular_strip.cc:64:     esp_timer_stop(strip_timer_);
+D:\xiaozhi-esp32\main\led\circular_strip.cc:72:     esp_timer_stop(strip_timer_);
+D:\xiaozhi-esp32\main\led\circular_strip.cc:113:             esp_timer_stop(strip_timer_);
+D:\xiaozhi-esp32\main\led\circular_strip.cc:185:     esp_timer_stop(strip_timer_);
+D:\xiaozhi-esp32\main\led\gpio_led.cc:92:     esp_timer_stop(blink_timer_);
+D:\xiaozhi-esp32\main\led\gpio_led.cc:94:         ledc_fade_stop(ledc_channel_.speed_mode, ledc_channel_.channel);
+D:\xiaozhi-esp32\main\led\gpio_led.cc:114:     esp_timer_stop(blink_timer_);
+D:\xiaozhi-esp32\main\led\gpio_led.cc:115:     ledc_fade_stop(ledc_channel_.speed_mode, ledc_channel_.channel);
+D:\xiaozhi-esp32\main\led\gpio_led.cc:126:     esp_timer_stop(blink_timer_);
+D:\xiaozhi-esp32\main\led\gpio_led.cc:127:     ledc_fade_stop(ledc_channel_.speed_mode, ledc_channel_.channel);
+D:\xiaozhi-esp32\main\led\gpio_led.cc:150:     esp_timer_stop(blink_timer_);
+D:\xiaozhi-esp32\main\led\gpio_led.cc:151:     ledc_fade_stop(ledc_channel_.speed_mode, ledc_channel_.channel);
+D:\xiaozhi-esp32\main\led\gpio_led.cc:167:             esp_timer_stop(blink_timer_);
+D:\xiaozhi-esp32\main\led\gpio_led.cc:179:     esp_timer_stop(blink_timer_);
+D:\xiaozhi-esp32\main\led\gpio_led.cc:180:     ledc_fade_stop(ledc_channel_.speed_mode, ledc_channel_.channel);
+D:\xiaozhi-esp32\main\led\single_led.cc:47:         esp_timer_stop(blink_timer_);
+D:\xiaozhi-esp32\main\led\single_led.cc:67:     esp_timer_stop(blink_timer_);
+D:\xiaozhi-esp32\main\led\single_led.cc:78:     esp_timer_stop(blink_timer_);
+D:\xiaozhi-esp32\main\led\single_led.cc:100:     esp_timer_stop(blink_timer_);
+D:\xiaozhi-esp32\main\led\single_led.cc:117:             esp_timer_stop(blink_timer_);
+D:\xiaozhi-esp32\main\protocols\mqtt_protocol.cc:44:         esp_timer_stop(reconnect_timer_);
+D:\xiaozhi-esp32\main\protocols\mqtt_protocol.cc:110:         esp_timer_stop(reconnect_timer_);
+D:\xiaozhi-esp32\main\protocols\protocol.cc:79:     } else if (mode == kListeningModeAutoStop) {
+D:\xiaozhi-esp32\main\protocols\protocol.cc:88: void Protocol::SendStopListening() {
+D:\xiaozhi-esp32\main\protocols\protocol.cc:90:         "{\"session_id\":\"" + session_id_ + "\",\"type\":\"listen\",\"state\":\"stop\"}";
+D:\xiaozhi-esp32\main\protocols\protocol.h:36:     kListeningModeAutoStop,
+D:\xiaozhi-esp32\main\protocols\protocol.h:37:     kListeningModeManualStop,
+D:\xiaozhi-esp32\main\protocols\protocol.h:64:     virtual void SendStopListening();
+D:\xiaozhi-esp32\main\application.cc:52:         esp_timer_stop(clock_timer_handle_);
+D:\xiaozhi-esp32\main\application.cc:178:         MAIN_EVENT_START_LISTENING | MAIN_EVENT_STOP_LISTENING | MAIN_EVENT_ACTIVATION_DONE |
+D:\xiaozhi-esp32\main\application.cc:224:         if (bits & MAIN_EVENT_STOP_LISTENING) {
+D:\xiaozhi-esp32\main\application.cc:225:             HandleStopListeningEvent();
+D:\xiaozhi-esp32\main\application.cc:564:             } else if (strcmp(state->valuestring, "stop") == 0) {
+D:\xiaozhi-esp32\main\application.cc:567:                         if (listening_mode_ == kListeningModeManualStop) {
+D:\xiaozhi-esp32\main\application.cc:708: void Application::StopListening() { xEventGroupSetBits(event_group_, MAIN_EVENT_STOP_LISTENING); }
+D:\xiaozhi-esp32\main\application.cc:790:             Schedule([this]() { ContinueOpenAudioChannel(kListeningModeManualStop); });
+D:\xiaozhi-esp32\main\application.cc:793:         SetListeningMode(kListeningModeManualStop);
+D:\xiaozhi-esp32\main\application.cc:796:         SetListeningMode(kListeningModeManualStop);
+D:\xiaozhi-esp32\main\application.cc:800: void Application::HandleStopListeningEvent() {
+D:\xiaozhi-esp32\main\application.cc:809:             protocol_->SendStopListening();
+D:\xiaozhi-esp32\main\application.cc:836:             // Re-enable wake word detection as it was stopped by the detection itself
+D:\xiaozhi-esp32\main\application.cc:857:         // Wake word detection was stopped by the detection itself; restore it
+D:\xiaozhi-esp32\main\application.cc:945:                 // voice processing. This prevents audio truncation when STOP arrives
+D:\xiaozhi-esp32\main\application.cc:948:                 if (listening_mode_ == kListeningModeAutoStop && !audio_service_.IsPlaybackIdle()) {
+D:\xiaozhi-esp32\main\application.cc:1030:     return aec_mode_ == kAecOff ? kListeningModeAutoStop : kListeningModeRealtime;
+D:\xiaozhi-esp32\main\application.cc:1040:     audio_service_.Stop();
+D:\xiaozhi-esp32\main\application.cc:1070:     audio_service_.Stop();
+D:\xiaozhi-esp32\main\application.cc:1095:         vTaskDelay(pdMS_TO_TICKS(1000));  // Brief pause to show message
+D:\xiaozhi-esp32\main\application.h:33: #define MAIN_EVENT_STOP_LISTENING       (1 << 11)
+D:\xiaozhi-esp32\main\application.h:103:      * Stop listening (event-based, thread-safe)
+D:\xiaozhi-esp32\main\application.h:104:      * Sends MAIN_EVENT_STOP_LISTENING to be handled in Run()
+D:\xiaozhi-esp32\main\application.h:106:     void StopListening();
+D:\xiaozhi-esp32\main\application.h:136:     ListeningMode listening_mode_ = kListeningModeAutoStop;
+D:\xiaozhi-esp32\main\application.h:157:     void HandleStopListeningEvent();
+D:\xiaozhi-esp32\main\mcp_server.cc:197:                 .PlayLocal(track);
+D:\xiaozhi-esp32\main\mcp_server.cc:205:         "self.media.stop",
+D:\xiaozhi-esp32\main\mcp_server.cc:206:         "Stop the currently playing song or radio on this device. "
+D:\xiaozhi-esp32\main\mcp_server.cc:207:         "Use this tool when the user says stop, berhenti, matikan musik, or matikan radio.",
+D:\xiaozhi-esp32\main\mcp_server.cc:210:             ESP_LOGI(TAG, "MCP stop requested");
+D:\xiaozhi-esp32\main\mcp_server.cc:213:                 .StopAudio();
+D:\xiaozhi-esp32\main\mcp_server.cc:241:                 .PlayRadio(station_id);
