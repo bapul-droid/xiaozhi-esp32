@@ -1,0 +1,757 @@
+﻿=== CURRENT BOARD BUTTON CODE ===
+
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:120:#endif
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:121:        
+display_ = new SpiLcdDisplay(panel_io, panel,
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:122:                
+                    DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_OFFSET_X, 
+DISPLAY_OFFSET_Y, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y, DISPLAY_SWAP_XY);
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:123:    }
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:124:
+> main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:125:    void 
+InitializeButtons() {
+> main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:126:    
+boot_button_.OnClick([this]() {
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:127:        
+ESP_LOGI(TAG, "BOOT single click");
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:128:
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:129:        auto& 
+app = Application::GetInstance();
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:130:        
+app.ToggleChatState();
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:131:    });
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:132:
+> main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:133:boot_button_.OnD
+oubleClick([this]() {
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:134:    ESP_LOGI(
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:135:        TAG,
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:136:        "BOOT 
+double click - stopping media"
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:137:    );
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:138:
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:139:    
+GeniusClient::GetInstance().StopAudio();
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:140:});
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:141:
+> main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:142:boot_button_.OnM
+ultipleClick([this]() {
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:143:    ESP_LOGI(
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:144:        TAG,
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:145:        "BOOT 
+triple click - status requested"
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:146:    );
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:147:
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:148:    auto& app = 
+Application::GetInstance();
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:149:
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:150:    ESP_LOGI(
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:151:        TAG,
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:152:        "Minji 
+status: device_state=%d, volume=%d",
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:153:        
+static_cast<int>(app.GetDeviceState()),
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:154:        
+GetAudioCodec()->output_volume()
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:155:    );
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:156:}, 3);
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:157:
+> main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:158:    
+boot_button_.OnLongPress([this]() {
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:159:        
+ESP_LOGI(
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:160:            TAG,
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:161:            
+"BOOT long press - entering WiFi config"
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:162:        );
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:163:
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:164:        
+EnterWifiConfigMode();
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:165:    });
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:166:}
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:167:
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:168:    // 
+物联网初始化，添加对 AI 可见设备
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:169:    void 
+InitializeTools() {
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:170:        static 
+LampController lamp(LAMP_GPIO);
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:177:        false,
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:178:        2500
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:179:    ) {
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:180:        
+InitializeSpi();
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:181:        
+InitializeLcdDisplay();
+> main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:182:        
+InitializeButtons();
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:183:        
+InitializeTools();
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:184:        if 
+(DISPLAY_BACKLIGHT_PIN != GPIO_NUM_NC) {
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:185:            
+GetBacklight()->RestoreBrightness();
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:186:        }
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:187:        
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:188:    }
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:189:
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:190:    virtual 
+Led* GetLed() override {
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:191:        static 
+SingleLed led(BUILTIN_LED_GPIO);
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:192:        return 
+&led;
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:193:    }
+  main\boards\bread-compact-wifi-lcd\compact_wifi_board_lcd.cc:194:
+
+
+
+
+=== BUTTON WRAPPER IMPLEMENTATION ===
+#ifndef BUTTON_H_
+#define BUTTON_H_
+
+#include <driver/gpio.h>
+#include <iot_button.h>
+#include <button_types.h>
+#include <button_adc.h>
+#include <button_gpio.h>
+#include <functional>
+
+class Button {
+public:
+    Button(button_handle_t button_handle);
+    Button(gpio_num_t gpio_num, bool active_high = false, uint16_t long_press_time = 0, uint16_t short_press_time = 0, bool enable_power_save = false);
+    ~Button();
+
+    void OnPressDown(std::function<void()> callback);
+    void OnPressUp(std::function<void()> callback);
+    void OnLongPress(std::function<void()> callback);
+    void OnClick(std::function<void()> callback);
+    void OnDoubleClick(std::function<void()> callback);
+    void OnMultipleClick(std::function<void()> callback, uint8_t click_count = 3);
+
+protected:
+    gpio_num_t gpio_num_;
+    button_handle_t button_handle_ = nullptr;
+
+    std::function<void()> on_press_down_;
+    std::function<void()> on_press_up_;
+    std::function<void()> on_long_press_;
+    std::function<void()> on_click_;
+    std::function<void()> on_double_click_;
+    std::function<void()> on_multiple_click_;
+};
+
+#if CONFIG_SOC_ADC_SUPPORTED
+class AdcButton : public Button {
+public:
+    AdcButton(const button_adc_config_t& adc_config);
+};
+#endif
+
+class PowerSaveButton : public Button {
+public:
+    PowerSaveButton(gpio_num_t gpio_num) : Button(gpio_num, false, 0, 0, true) {
+    }
+};
+
+#endif // BUTTON_H_
+#include "button.h"
+
+#include <button_gpio.h>
+#include <esp_log.h>
+
+#define TAG "Button"
+
+#if CONFIG_SOC_ADC_SUPPORTED
+AdcButton::AdcButton(const button_adc_config_t& adc_config) : Button(nullptr) {
+    button_config_t btn_config = {
+        .long_press_time = 2000,
+        .short_press_time = 0,
+    };
+    ESP_ERROR_CHECK(iot_button_new_adc_device(&btn_config, &adc_config, &button_handle_));
+}
+#endif
+
+Button::Button(button_handle_t button_handle) : button_handle_(button_handle) {
+}
+
+Button::Button(gpio_num_t gpio_num, bool active_high, uint16_t long_press_time, uint16_t short_press_time, bool enable_power_save) : gpio_num_(gpio_num) {
+    if (gpio_num == GPIO_NUM_NC) {
+        return;
+    }
+    button_config_t button_config = {
+        .long_press_time = long_press_time,
+        .short_press_time = short_press_time
+    };
+    button_gpio_config_t gpio_config = {
+        .gpio_num = gpio_num,
+        .active_level = static_cast<uint8_t>(active_high ? 1 : 0),
+        .enable_power_save = enable_power_save,
+        .disable_pull = false
+    };
+    ESP_ERROR_CHECK(iot_button_new_gpio_device(&button_config, &gpio_config, &button_handle_));
+}
+
+Button::~Button() {
+    if (button_handle_ != NULL) {
+        iot_button_delete(button_handle_);
+    }
+}
+
+void Button::OnPressDown(std::function<void()> callback) {
+    if (button_handle_ == nullptr) {
+        return;
+    }
+    on_press_down_ = callback;
+    iot_button_register_cb(button_handle_, BUTTON_PRESS_DOWN, nullptr, [](void* handle, void* usr_data) {
+        Button* button = static_cast<Button*>(usr_data);
+        if (button->on_press_down_) {
+            button->on_press_down_();
+        }
+    }, this);
+}
+
+void Button::OnPressUp(std::function<void()> callback) {
+    if (button_handle_ == nullptr) {
+        return;
+    }
+    on_press_up_ = callback;
+    iot_button_register_cb(button_handle_, BUTTON_PRESS_UP, nullptr, [](void* handle, void* usr_data) {
+        Button* button = static_cast<Button*>(usr_data);
+        if (button->on_press_up_) {
+            button->on_press_up_();
+        }
+    }, this);
+}
+
+void Button::OnLongPress(std::function<void()> callback) {
+    if (button_handle_ == nullptr) {
+        return;
+    }
+    on_long_press_ = callback;
+    iot_button_register_cb(button_handle_, BUTTON_LONG_PRESS_START, nullptr, [](void* handle, void* usr_data) {
+        Button* button = static_cast<Button*>(usr_data);
+        if (button->on_long_press_) {
+            button->on_long_press_();
+        }
+    }, this);
+}
+
+void Button::OnClick(std::function<void()> callback) {
+    if (button_handle_ == nullptr) {
+        return;
+    }
+    on_click_ = callback;
+    iot_button_register_cb(button_handle_, BUTTON_SINGLE_CLICK, nullptr, [](void* handle, void* usr_data) {
+        Button* button = static_cast<Button*>(usr_data);
+        if (button->on_click_) {
+            button->on_click_();
+        }
+    }, this);
+}
+
+void Button::OnDoubleClick(std::function<void()> callback) {
+    if (button_handle_ == nullptr) {
+        return;
+    }
+    on_double_click_ = callback;
+    iot_button_register_cb(button_handle_, BUTTON_DOUBLE_CLICK, nullptr, [](void* handle, void* usr_data) {
+        Button* button = static_cast<Button*>(usr_data);
+        if (button->on_double_click_) {
+            button->on_double_click_();
+        }
+    }, this);
+}
+
+void Button::OnMultipleClick(std::function<void()> callback, uint8_t click_count) {
+    if (button_handle_ == nullptr) {
+        return;
+    }
+    on_multiple_click_ = callback;
+    button_event_args_t event_args = {
+        .multiple_clicks = {
+            .clicks = click_count
+        }
+    };
+    iot_button_register_cb(button_handle_, BUTTON_MULTIPLE_CLICK, &event_args, [](void* handle, void* usr_data) {
+        Button* button = static_cast<Button*>(usr_data);
+        if (button->on_multiple_click_) {
+            button->on_multiple_click_();
+        }
+    }, this);
+}
+
+=== BOARDS USING DOUBLE + MULTIPLE CLICK ===
+
+--- .\main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc ---
+
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:213:        // 
+sdmmc_card_print_info(stdout, card); // 打印SD卡信息
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:214:    }
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:215:
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:216:    void 
+InitializePhysicalButtons() {
+> main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:217:        
+boot_button_.OnClick([this]() {
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:218:            
+this->TriggerVibrateEvent();
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:219:            
+power_save_timer_->WakeUp();
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:220:            auto& app 
+= Application::GetInstance();
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:221:            if 
+(GetNetworkType() == NetworkType::WIFI) {
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:222:                if 
+(app.GetDeviceState() == kDeviceStateStarting) {
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:223:                    // 
+cast to WifiBoard
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:224:                    
+auto& wifi_board = static_cast<WifiBoard&>(GetCurrentBoard());
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:225:                    
+wifi_board.EnterWifiConfigMode();
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:226:                    
+return;
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:227:                }
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:228:            }
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:229:            
+app.ToggleChatState();
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:230:        });
+> main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:231:        
+boot_button_.OnDoubleClick([this]() {
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:232:            
+this->TriggerVibrateEvent();
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:233:            auto& app 
+= Application::GetInstance();
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:234:            if 
+(app.GetDeviceState() == kDeviceStateStarting || app.GetDeviceState() == 
+kDeviceStateWifiConfiguring) {
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:235:                
+SwitchNetworkType();
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:236:            }
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:237:        });
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:238:
+> main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:239:        
+boot_button_.OnMultipleClick(
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:240:            [this]() {
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:241:                
+ESP_LOGI(TAG, "Button OnFiveClick");
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:242:                
+this->TriggerVibrateEvent();
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:243:                if 
+(is_sdcard_found) {
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:244:                    
+display_->SetChatMessage("system", "开机检测到SD挂载成功");
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:245:                } else 
+{
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:246:                    
+display_->SetChatMessage("system", "开机检测到SD挂载失败");
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:247:                }
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:248:            }, 5);
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:249:
+> main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:250:        
+volume_up_button_.OnClick([this]() {
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:251:            
+this->TriggerVibrateEvent();
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:252:            
+power_save_timer_->WakeUp();
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:253:            auto codec 
+= GetAudioCodec();
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:254:            auto 
+volume = codec->output_volume() + 10;
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:255:            if (volume 
+> 100) {
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:256:                volume 
+= 100;
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:257:            }
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:258:            
+codec->SetOutputVolume(volume);
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:259:            
+GetDisplay()->ShowNotification(Lang::Strings::VOLUME + std::to_string(volume));
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:260:        });
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:261:
+> main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:262:        
+volume_up_button_.OnLongPress([this]() {
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:263:            
+this->TriggerVibrateEvent();
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:264:            
+power_save_timer_->WakeUp();
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:265:            
+GetAudioCodec()->SetOutputVolume(100);
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:266:            
+GetDisplay()->ShowNotification(Lang::Strings::MAX_VOLUME);
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:267:        });
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:268:
+> main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:269:        
+volume_down_button_.OnClick([this]() {
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:270:            
+this->TriggerVibrateEvent();
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:271:            
+power_save_timer_->WakeUp();
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:272:            auto codec 
+= GetAudioCodec();
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:273:            auto 
+volume = codec->output_volume() - 10;
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:274:            if (volume 
+< 0) {
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:275:                volume 
+= 0;
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:276:            }
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:277:            
+codec->SetOutputVolume(volume);
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:278:            
+GetDisplay()->ShowNotification(Lang::Strings::VOLUME + std::to_string(volume));
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:279:        });
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:280:
+> main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:281:        
+volume_down_button_.OnLongPress([this]() {
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:282:            
+this->TriggerVibrateEvent();
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:283:            
+power_save_timer_->WakeUp();
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:284:            
+GetAudioCodec()->SetOutputVolume(0);
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:285:            
+GetDisplay()->ShowNotification(Lang::Strings::MUTED);
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:286:        });
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:287:    }
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:288:
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:289:    void 
+InitializeGpio() {
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:290:        gpio_config_t 
+zhengdong = {};
+  main\boards\nologo\xingzhi-abs-2.0\xingzhi-abs-2.0.cc:291:        
+zhengdong.intr_type = GPIO_INTR_DISABLE;
+
+
+
+
+--- .\main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc ---
+
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:157:
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:158:    void 
+InitializeButtons() {
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:159:
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:160:        
+pwr_button_.OnPressUp([this]() {
+> main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:161:            
+pwr_button_.OnClick([this]() {
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:162:                
+auto& app = Application::GetInstance();
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:163:                
+app.ToggleChatState();
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:164:            });
+> main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:165:            
+pwr_button_.OnLongPress([this]() {
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:166:                
+printf("Power button long press\n");
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:167:                
+if (power_manager_ != nullptr){
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:168:                
+    power_manager_->PowerOff();
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:169:                
+}
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:170:            });
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:171:
+> main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:172:            
+pwr_button_.OnDoubleClick([this]() {
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:173:                
+static uint8_t brightness_last = 0;
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:174:                
+auto backlight = Board::GetInstance().GetBacklight();
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:175:                
+if (backlight->brightness() == 0) {
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:176:                
+    brightness_last = 0;
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:177:                
+    if (brightness_last == 0) {
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:178:                
+        backlight->SetBrightness(50, true);
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:179:                
+    } else {
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:180:                
+        backlight->SetBrightness(brightness_last, true);
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:181:                
+    }
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:182:                
+} else {
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:183:                
+    brightness_last = backlight->brightness();
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:184:                
+    backlight->SetBrightness(0);
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:185:                
+}
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:186:            });
+> main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:187:            
+pwr_button_.OnMultipleClick([this]() {
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:188:                
+EnterWifiConfigMode();
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:189:            }, 
+3);
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:190:            
+pwr_button_.OnPressUpDel();
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:191:        });
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:192:
+> main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:193:        
+volume_up_button_.OnClick([this]() {
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:194:            
+auto codec = Board::GetInstance().GetAudioCodec();
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:195:            
+auto volume = codec->output_volume() + 10;
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:196:            if 
+(volume > 100) {
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:197:                
+volume = 100;
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:198:            }
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:199:            
+codec->SetOutputVolume(volume);
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:200:            
+GetDisplay()->ShowNotification(Lang::Strings::VOLUME + std::to_string(volume/10));
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:201:        });
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:202:
+> main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:203:        
+volume_up_button_.OnLongPress([this]() {
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:204:            
+Board::GetInstance().GetAudioCodec()->SetOutputVolume(100);
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:205:            
+GetDisplay()->ShowNotification(Lang::Strings::MAX_VOLUME);
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:206:        });
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:207:
+> main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:208:        
+volume_down_button_.OnClick([this]() {
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:209:            
+auto codec = Board::GetInstance().GetAudioCodec();
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:210:            
+auto volume = codec->output_volume() - 10;
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:211:            if 
+(volume < 0) {
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:212:                
+volume = 0;
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:213:            }
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:214:            
+codec->SetOutputVolume(volume);
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:215:            
+GetDisplay()->ShowNotification(Lang::Strings::VOLUME + std::to_string(volume/10));
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:216:        });
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:217:
+> main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:218:        
+volume_down_button_.OnLongPress([this]() {
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:219:            
+Board::GetInstance().GetAudioCodec()->SetOutputVolume(0);
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:220:            
+GetDisplay()->ShowNotification(Lang::Strings::MUTED);
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:221:        });
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:222:#if 
+CONFIG_USE_DEVICE_AEC
+> main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:223:        
+volume_down_button_.OnDoubleClick([this]() {
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:224:            
+auto& app = Application::GetInstance();
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:225:            if 
+(app.GetDeviceState() == kDeviceStateIdle) {
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:226:                
+app.SetAecMode(app.GetAecMode() == kAecOff ? kAecOnDeviceSide : kAecOff);
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:227:            }
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:228:        });
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:229:#endif
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:230:    }
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:231:
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:232:    // 初始化工具
+  main\boards\waveshare\esp32-s3-lcd-0.85\esp32-s3-lcd-0.85.cc:233:    void 
+InitializeTools() {
+
+
+
+
+--- .\main\boards\yunliao-s3\yunliao_s3.cc ---
+
+  main\boards\yunliao-s3\yunliao_s3.cc:95:            
+spi_bus_initialize(DISPLAY_SPI_LCD_HOST, &buscfg, SPI_DMA_CH_AUTO));
+  main\boards\yunliao-s3\yunliao_s3.cc:96:    }
+  main\boards\yunliao-s3\yunliao_s3.cc:97:
+  main\boards\yunliao-s3\yunliao_s3.cc:98:    void InitializeButtons() {
+> main\boards\yunliao-s3\yunliao_s3.cc:99:        boot_button_.OnClick([this]() {
+  main\boards\yunliao-s3\yunliao_s3.cc:100:            power_save_timer_->WakeUp();
+  main\boards\yunliao-s3\yunliao_s3.cc:101:            auto& app = 
+Application::GetInstance();
+  main\boards\yunliao-s3\yunliao_s3.cc:102:            app.ToggleChatState();
+  main\boards\yunliao-s3\yunliao_s3.cc:103:        });
+> main\boards\yunliao-s3\yunliao_s3.cc:104:        
+boot_button_.OnDoubleClick([this]() {
+> main\boards\yunliao-s3\yunliao_s3.cc:105:            ESP_LOGI(TAG, "Button 
+OnDoubleClick");
+  main\boards\yunliao-s3\yunliao_s3.cc:106:            auto& app = 
+Application::GetInstance();
+  main\boards\yunliao-s3\yunliao_s3.cc:107:            if (app.GetDeviceState() == 
+kDeviceStateStarting ||
+  main\boards\yunliao-s3\yunliao_s3.cc:108:                app.GetDeviceState() == 
+kDeviceStateWifiConfiguring) {
+  main\boards\yunliao-s3\yunliao_s3.cc:109:                SwitchNetworkType();
+  main\boards\yunliao-s3\yunliao_s3.cc:110:            }else 
+if(app.GetDeviceState() == kDeviceStateIdle){
+  main\boards\yunliao-s3\yunliao_s3.cc:111:                bool enableAec = 
+app.GetAecMode() == kAecOff;
+  main\boards\yunliao-s3\yunliao_s3.cc:112:                SetAecMode(enableAec);
+  main\boards\yunliao-s3\yunliao_s3.cc:113:                Settings 
+settings("aec", true);
+  main\boards\yunliao-s3\yunliao_s3.cc:114:                settings.SetInt("mode", 
+enableAec);
+  main\boards\yunliao-s3\yunliao_s3.cc:115:            }
+  main\boards\yunliao-s3\yunliao_s3.cc:116:        });
+> main\boards\yunliao-s3\yunliao_s3.cc:117:        boot_button_.OnMultipleClick(
+  main\boards\yunliao-s3\yunliao_s3.cc:118:            [this]() {
+  main\boards\yunliao-s3\yunliao_s3.cc:119:                ESP_LOGI(TAG, "Button 
+OnThreeClick");
+  main\boards\yunliao-s3\yunliao_s3.cc:120:                if (GetNetworkType() == 
+NetworkType::WIFI) {
+  main\boards\yunliao-s3\yunliao_s3.cc:121:                    auto& wifi_board =
+  main\boards\yunliao-s3\yunliao_s3.cc:122:                        
+static_cast<WifiBoard&>(GetCurrentBoard());
+  main\boards\yunliao-s3\yunliao_s3.cc:123:                    
+wifi_board.EnterWifiConfigMode();
+  main\boards\yunliao-s3\yunliao_s3.cc:124:                }
+  main\boards\yunliao-s3\yunliao_s3.cc:125:            }, 3);
+> main\boards\yunliao-s3\yunliao_s3.cc:126:        
+boot_button_.OnLongPress([this]() {
+  main\boards\yunliao-s3\yunliao_s3.cc:127:            ESP_LOGI(TAG, "Button 
+LongPress to Sleep");
+  main\boards\yunliao-s3\yunliao_s3.cc:128:            
+display_->SetStatus(Lang::Strings::PLEASE_WAIT);
+  main\boards\yunliao-s3\yunliao_s3.cc:129:            
+vTaskDelay(pdMS_TO_TICKS(2000));
+  main\boards\yunliao-s3\yunliao_s3.cc:130:            power_manager_->Sleep();
+  main\boards\yunliao-s3\yunliao_s3.cc:131:        });
+  main\boards\yunliao-s3\yunliao_s3.cc:132:    }
+  main\boards\yunliao-s3\yunliao_s3.cc:133:    void InitializeSt7789Display() {
+  main\boards\yunliao-s3\yunliao_s3.cc:134:        esp_lcd_panel_io_handle_t 
+panel_io = nullptr;
+  main\boards\yunliao-s3\yunliao_s3.cc:135:        esp_lcd_panel_handle_t panel = 
+nullptr;
+  main\boards\yunliao-s3\yunliao_s3.cc:136:        // 液晶屏控制IO初始化
+
+
+
+
+=== ESP BUTTON COMPONENT FILES ===
+D:\xiaozhi-esp32\managed_components\espressif2022__esp_emote_gfx\include\widget\gfx_button.h
+D:\xiaozhi-esp32\managed_components\espressif2022__esp_emote_gfx\src\widget\basic\gfx_button.c
+D:\xiaozhi-esp32\managed_components\espressif2022__esp_emote_gfx\test_apps\main\test_button.c
+D:\xiaozhi-esp32\managed_components\espressif__button\include\button_adc.h
+D:\xiaozhi-esp32\managed_components\espressif__button\include\button_gpio.h
+D:\xiaozhi-esp32\managed_components\espressif__button\include\button_matrix.h
+D:\xiaozhi-esp32\managed_components\espressif__button\include\button_rtc.h
+D:\xiaozhi-esp32\managed_components\espressif__button\include\button_types.h
+D:\xiaozhi-esp32\managed_components\espressif__button\include\iot_button.h
+D:\xiaozhi-esp32\managed_components\espressif__button\interface\button_interface.h
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\adc_button_test.c
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\auto_test.c
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\button_test_main.c
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\custom_button_test.c
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\gpio_button_test.c
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\matrix_button_test.c
+D:\xiaozhi-esp32\managed_components\espressif__button\button_adc.c
+D:\xiaozhi-esp32\managed_components\espressif__button\button_gpio.c
+D:\xiaozhi-esp32\managed_components\espressif__button\button_matrix.c
+D:\xiaozhi-esp32\managed_components\espressif__button\button_rtc.c
+D:\xiaozhi-esp32\managed_components\espressif__button\idf_component.yml
+D:\xiaozhi-esp32\managed_components\espressif__button\iot_button.c
+D:\xiaozhi-esp32\managed_components\espressif__esp_lvgl_port\include\esp_lvgl_port_button.h
+D:\xiaozhi-esp32\managed_components\espressif__esp_lvgl_port\src\lvgl8\esp_lvgl_port_button.c
+D:\xiaozhi-esp32\managed_components\espressif__esp_lvgl_port\src\lvgl9\esp_lvgl_port_button.c
+D:\xiaozhi-esp32\managed_components\espressif__touch_button_sensor\include\touch_button_sensor.h
+D:\xiaozhi-esp32\managed_components\espressif__touch_button_sensor\test_apps\main\idf_component.yml
+D:\xiaozhi-esp32\managed_components\espressif__touch_button_sensor\test_apps\main\test_touch_button_sensor.c
+D:\xiaozhi-esp32\managed_components\espressif__touch_button_sensor\idf_component.yml
+D:\xiaozhi-esp32\managed_components\espressif__touch_button_sensor\touch_button_sensor.c
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\examples\event\lv_example_event_button.c
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\examples\widgets\button\lv_example_button_1.c
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\examples\widgets\button\lv_example_button_2.c
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\examples\widgets\button\lv_example_button_3.c
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\examples\widgets\buttonmatrix\lv_example_buttonmatrix_1.c
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\examples\widgets\buttonmatrix\lv_example_buttonmatrix_2.c
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\examples\widgets\buttonmatrix\lv_example_buttonmatrix_3.c
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\examples\widgets\imagebutton\lv_example_imagebutton_1.c
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\src\widgets\button\lv_button.c
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\src\widgets\button\lv_button.h
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\src\widgets\button\lv_button_private.h
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\src\widgets\buttonmatrix\lv_buttonmatrix.c
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\src\widgets\buttonmatrix\lv_buttonmatrix.h
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\src\widgets\buttonmatrix\lv_buttonmatrix_private.h
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\src\widgets\imagebutton\lv_imagebutton.c
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\src\widgets\imagebutton\lv_imagebutton.h
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\src\widgets\imagebutton\lv_imagebutton_private.h
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\src\widgets\property\lv_buttonmatrix_properties.c
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\tests\src\test_assets\test_imagebutton_left.c
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\tests\src\test_assets\test_imagebutton_mid.c
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\tests\src\test_assets\test_imagebutton_right.c
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\tests\src\test_assets\test_music_button_play.c
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\tests\src\test_cases\widgets\test_imagebutton.c
+
+=== MULTIPLE CLICK DEFINITIONS ===
+D:\xiaozhi-esp32\managed_components\78__esp-wifi-connect\wifi_configuration_ap.cc:711:     // By the time the user clicks "submit" a second time (~8s later)
+D:\xiaozhi-esp32\managed_components\espressif__button\include\iot_button.h:39:     BUTTON_DOUBLE_CLICK,
+D:\xiaozhi-esp32\managed_components\espressif__button\include\iot_button.h:40:     BUTTON_MULTIPLE_CLICK,
+D:\xiaozhi-esp32\managed_components\espressif__button\include\iot_button.h:63:      * @brief Multiple clicks event data
+D:\xiaozhi-esp32\managed_components\espressif__button\include\iot_button.h:66:     struct multiple_clicks_t {
+D:\xiaozhi-esp32\managed_components\espressif__button\include\iot_button.h:67:         uint16_t clicks;        /**< number of clicks, to trigger the callback */
+D:\xiaozhi-esp32\managed_components\espressif__button\include\iot_button.h:68:     } multiple_clicks;          /**< multiple clicks struct, for event BUTTON_MULTIPLE_CLICK */
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\adc_button_test.c:34:     if (BUTTON_MULTIPLE_CLICK == event) {
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\adc_button_test.c:73:         iot_button_register_cb(btns[i], BUTTON_DOUBLE_CLICK, NULL, button_event_cb, (void *)i);
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\adc_button_test.c:124:         iot_button_register_cb(btns[i], BUTTON_DOUBLE_CLICK, NULL, button_event_cb, (void *)i);
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\auto_test.c:62:     // test BUTTON_DOUBLE_CLICK
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\auto_test.c:73:     // test BUTTON_MULTIPLE_CLICK
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\auto_test.c:132:         if (i == BUTTON_MULTIPLE_CLICK) {
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\auto_test.c:134:                 .multiple_clicks.clicks = 4,
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\auto_test.c:136:             iot_button_register_cb(btn, BUTTON_MULTIPLE_CLICK, &args, button_auto_check_cb_1, NULL);
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\auto_test.c:137:             iot_button_register_cb(btn, BUTTON_MULTIPLE_CLICK, &args, button_auto_check_cb, NULL);
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\auto_test.c:163:         if (i == BUTTON_MULTIPLE_CLICK) {
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\auto_test.c:164:             args.multiple_clicks.clicks = 4;
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\custom_button_test.c:32:     if (BUTTON_MULTIPLE_CLICK == event) {
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\custom_button_test.c:83:     iot_button_register_cb(btn, BUTTON_DOUBLE_CLICK, NULL, button_event_cb, NULL);
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\custom_button_test.c:88:         .multiple_clicks.clicks = 2,
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\custom_button_test.c:90:     iot_button_register_cb(btn, BUTTON_MULTIPLE_CLICK, &args, button_event_cb, (void *)2);
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\custom_button_test.c:92:     args.multiple_clicks.clicks = 3;
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\custom_button_test.c:93:     iot_button_register_cb(btn, BUTTON_MULTIPLE_CLICK, &args, button_event_cb, (void *)3);
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\gpio_button_test.c:32:     if (BUTTON_MULTIPLE_CLICK == event) {
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\gpio_button_test.c:54:     iot_button_register_cb(btn, BUTTON_DOUBLE_CLICK, NULL, button_event_cb, NULL);
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\gpio_button_test.c:59:         .multiple_clicks.clicks = 2,
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\gpio_button_test.c:61:     iot_button_register_cb(btn, BUTTON_MULTIPLE_CLICK, &args, button_event_cb, (void *)2);
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\gpio_button_test.c:63:     args.multiple_clicks.clicks = 3;
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\gpio_button_test.c:64:     iot_button_register_cb(btn, BUTTON_MULTIPLE_CLICK, &args, button_event_cb, (void *)3);
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\gpio_button_test.c:128:     iot_button_register_cb(btn, BUTTON_DOUBLE_CLICK, NULL, button_event_cb, NULL);
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\gpio_button_test.c:133:         .multiple_clicks.clicks = 2,
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\gpio_button_test.c:135:     iot_button_register_cb(btn, BUTTON_MULTIPLE_CLICK, &args, button_event_cb, (void *)2);
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\gpio_button_test.c:137:     args.multiple_clicks.clicks = 3;
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\gpio_button_test.c:138:     iot_button_register_cb(btn, BUTTON_MULTIPLE_CLICK, &args, button_event_cb, (void *)3);
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\gpio_button_test.c:169:     iot_button_register_cb(btn, BUTTON_DOUBLE_CLICK, NULL, button_event_cb, NULL);
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\gpio_button_test.c:174:         .multiple_clicks.clicks = 2,
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\gpio_button_test.c:176:     iot_button_register_cb(btn, BUTTON_MULTIPLE_CLICK, &args, button_event_cb, (void *)2);
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\gpio_button_test.c:178:     args.multiple_clicks.clicks = 3;
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\gpio_button_test.c:179:     iot_button_register_cb(btn, BUTTON_MULTIPLE_CLICK, &args, button_event_cb, (void *)3);
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\matrix_button_test.c:29:     if (BUTTON_MULTIPLE_CLICK == event) {
+D:\xiaozhi-esp32\managed_components\espressif__button\test_apps\main\matrix_button_test.c:58:             iot_button_register_cb(btns[index], BUTTON_DOUBLE_CLICK, NULL, button_event_cb, (void *)index);
+D:\xiaozhi-esp32\managed_components\espressif__button\iot_button.c:38:     "BUTTON_DOUBLE_CLICK",
+D:\xiaozhi-esp32\managed_components\espressif__button\iot_button.c:39:     "BUTTON_MULTIPLE_CLICK",
+D:\xiaozhi-esp32\managed_components\espressif__button\iot_button.c:188:                 btn->event = (uint8_t)BUTTON_DOUBLE_CLICK;
+D:\xiaozhi-esp32\managed_components\espressif__button\iot_button.c:189:                 CALL_EVENT_CB(BUTTON_DOUBLE_CLICK); // repeat hit
+D:\xiaozhi-esp32\managed_components\espressif__button\iot_button.c:192:             btn->event = (uint8_t)BUTTON_MULTIPLE_CLICK;
+D:\xiaozhi-esp32\managed_components\espressif__button\iot_button.c:194:             /** Calling the callbacks for MULTIPLE BUTTON CLICKS */
+D:\xiaozhi-esp32\managed_components\espressif__button\iot_button.c:196:                 if (btn->repeat == btn->cb_info[btn->event][i].event_args.multiple_clicks.clicks) {
+D:\xiaozhi-esp32\managed_components\espressif__button\iot_button.c:375:     ESP_RETURN_ON_FALSE(event != BUTTON_MULTIPLE_CLICK || event_args, ESP_ERR_INVALID_ARG, TAG, "event is invalid");
+D:\xiaozhi-esp32\managed_components\espressif__button\iot_button.c:379:         ESP_RETURN_ON_FALSE(event != BUTTON_MULTIPLE_CLICK || event_args->multiple_clicks.clicks, ESP_ERR_INVALID_ARG, TAG, "event_args is invalid");
+D:\xiaozhi-esp32\managed_components\espressif__button\iot_button.c:432:     if (event == BUTTON_MULTIPLE_CLICK) {
+D:\xiaozhi-esp32\managed_components\espressif__button\iot_button.c:433:         uint16_t clicks = btn->long_press_ticks * TICKS_INTERVAL;
+D:\xiaozhi-esp32\managed_components\espressif__button\iot_button.c:435:             clicks = event_args->multiple_clicks.clicks;
+D:\xiaozhi-esp32\managed_components\espressif__button\iot_button.c:439:                 if (btn->cb_info[event][i].event_args.multiple_clicks.clicks > clicks) {
+D:\xiaozhi-esp32\managed_components\espressif__button\iot_button.c:442:                     btn->cb_info[event][i].event_args.multiple_clicks.clicks = clicks;
+D:\xiaozhi-esp32\managed_components\espressif__button\iot_button.c:446:                     btn->cb_info[event][i + 1].event_args.multiple_clicks.clicks = clicks;
+D:\xiaozhi-esp32\managed_components\espressif__button\iot_button.c:453:             btn->cb_info[event][btn->size[event] - 1].event_args.multiple_clicks.clicks = clicks;
+D:\xiaozhi-esp32\managed_components\espressif__button\iot_button.c:474:     if (event == BUTTON_MULTIPLE_CLICK && event_args) {
+D:\xiaozhi-esp32\managed_components\espressif__button\iot_button.c:475:         if (event_args->multiple_clicks.clicks != 0) {
+D:\xiaozhi-esp32\managed_components\espressif__button\iot_button.c:505:         if (event == BUTTON_MULTIPLE_CLICK && event_args->multiple_clicks.clicks) {
+D:\xiaozhi-esp32\managed_components\espressif__button\iot_button.c:506:             if (event_args->multiple_clicks.clicks != btn->cb_info[event][i].event_args.multiple_clicks.clicks) {
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\examples\widgets\textarea\lv_example_textarea_1.c:41:     lv_obj_remove_flag(btnm, LV_OBJ_FLAG_CLICK_FOCUSABLE); /*To keep the text area focused on button clicks*/
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\src\indev\lv_indev.c:1588:     /*Update streak for clicks within small distance and short time*/
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\src\indev\lv_indev.h:338:  * Get the counter for consecutive clicks within a short distance and time.
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\src\widgets\arc\lv_arc.c:1053:  * In order to avoid unexpected value update of the arc value when the user clicks
+D:\xiaozhi-esp32\managed_components\lvgl__lvgl\tests\src\test_cases\widgets\test_ime_pinyin.c:600: /* Test candidate panel button clicks */

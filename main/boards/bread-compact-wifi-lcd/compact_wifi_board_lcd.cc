@@ -15,6 +15,9 @@
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_panel_ops.h>
 #include <driver/spi_common.h>
+#include <driver/gpio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 #if defined(LCD_TYPE_ILI9341_SERIAL)
 #include "esp_lcd_ili9341.h"
@@ -67,6 +70,56 @@ Button volume_up_button_;
 Button volume_down_button_;
 
 LcdDisplay* display_;
+
+    void RunHeaderDiagnostic() {
+        constexpr gpio_num_t kBclk = AUDIO_I2S_SPK_GPIO_BCLK; // GPIO15
+        constexpr gpio_num_t kWs   = AUDIO_I2S_SPK_GPIO_LRCK; // GPIO16
+        constexpr gpio_num_t kData = AUDIO_I2S_SPK_GPIO_DOUT; // GPIO7
+
+        ESP_LOGW(TAG,
+                 "HEADER_DIAG START: BCLK=GPIO%d WS=GPIO%d DATA=GPIO%d, duration=3s",
+                 (int)kBclk, (int)kWs, (int)kData);
+
+        gpio_config_t io = {};
+        io.pin_bit_mask = (1ULL << kBclk) | (1ULL << kWs) | (1ULL << kData);
+        io.mode = GPIO_MODE_OUTPUT;
+        io.pull_up_en = GPIO_PULLUP_DISABLE;
+        io.pull_down_en = GPIO_PULLDOWN_DISABLE;
+        io.intr_type = GPIO_INTR_DISABLE;
+        ESP_ERROR_CHECK(gpio_config(&io));
+
+        gpio_set_level(kBclk, 0);
+        gpio_set_level(kWs, 0);
+        gpio_set_level(kData, 0);
+
+        // 10 ms base tick for 3 seconds.
+        // GPIO15 toggles every 50 ms  -> ~10 Hz square wave.
+        // GPIO16 toggles every 70 ms  -> ~7.1 Hz square wave.
+        // GPIO7  toggles every 100 ms -> ~5 Hz square wave.
+        for (int tick = 1; tick <= 300; ++tick) {
+            if ((tick % 5) == 0) {
+                gpio_set_level(kBclk, !gpio_get_level(kBclk));
+            }
+            if ((tick % 7) == 0) {
+                gpio_set_level(kWs, !gpio_get_level(kWs));
+            }
+            if ((tick % 10) == 0) {
+                gpio_set_level(kData, !gpio_get_level(kData));
+            }
+            vTaskDelay(pdMS_TO_TICKS(10));
+        }
+
+        gpio_set_level(kBclk, 0);
+        gpio_set_level(kWs, 0);
+        gpio_set_level(kData, 0);
+
+        // Release the pins so NoAudioCodecSimplex can claim/configure them normally later.
+        gpio_reset_pin(kBclk);
+        gpio_reset_pin(kWs);
+        gpio_reset_pin(kData);
+
+        ESP_LOGW(TAG, "HEADER_DIAG DONE: pins released, continuing normal boot");
+    }
 
     void InitializeSpi() {
         spi_bus_config_t buscfg = {};
@@ -209,6 +262,7 @@ public:
         false,
         1200
     ) {
+        RunHeaderDiagnostic();
         InitializeSpi();
         InitializeLcdDisplay();
         InitializeButtons();

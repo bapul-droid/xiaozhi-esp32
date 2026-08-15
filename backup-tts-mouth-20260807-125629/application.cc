@@ -1,4 +1,5 @@
 #include "application.h"
+#include "genius_ui/minji_face.h"
 #include "assets.h"
 #include "assets/lang_config.h"
 #include "audio_codec.h"
@@ -55,13 +56,9 @@ Application::~Application() {
     vEventGroupDelete(event_group_);
 }
 
-bool Application::SetDeviceState(DeviceState state) {
-    GeniusClient::GetInstance().RecordDiagnosticState(static_cast<int>(state));
-    return state_machine_.TransitionTo(state);
-}
+bool Application::SetDeviceState(DeviceState state) { return state_machine_.TransitionTo(state); }
 
 void Application::Initialize() {
-    GeniusClient::GetInstance().RecordDiagnosticEvent("application_initialize");
     auto& board = Board::GetInstance();
     SetDeviceState(kDeviceStateStarting);
 
@@ -84,20 +81,6 @@ void Application::Initialize() {
         xEventGroupSetBits(event_group_, MAIN_EVENT_WAKE_WORD_DETECTED);
     };
     callbacks.on_vad_change = [this](bool speaking) {
-        // Media Wake V2: VAD sees the beginning of human speech before the
-        // complete wake word. Move the actual stop to the main task so the
-        // audio callback remains lightweight and thread-safe.
-        if (speaking && GeniusClient::GetInstance().IsAudioPlaying()) {
-            Schedule([this]() {
-                auto& genius = GeniusClient::GetInstance();
-                if (genius.IsAudioPlaying()) {
-                    genius.RecordDiagnosticEvent("media_stopped_by_vad");
-                    ESP_LOGI(TAG, "Media Wake V2: voice detected, stopping media");
-                    CancelPendingMediaStart();
-                    genius.StopAudio();
-                }
-            });
-        }
         xEventGroupSetBits(event_group_, MAIN_EVENT_VAD_CHANGE);
     };
     callbacks.on_playback_drained = [this]() {
@@ -229,8 +212,6 @@ void Application::Run() {
                 pending_listening_start_ = false;
                 StartListeningAudio();
             }
-
-            TryRunPendingMediaStart();
         }
 
         if (bits & MAIN_EVENT_TOGGLE_CHAT) {
@@ -283,7 +264,6 @@ void Application::Run() {
             clock_ticks_++;
             auto display = Board::GetInstance().GetDisplay();
             display->UpdateStatusBar();
-            CheckDisplaySleep();
 
             // Print debug info every 10 seconds
             if (clock_ticks_ % 10 == 0) {
@@ -292,35 +272,6 @@ void Application::Run() {
                 // SystemInfo::PrintTaskCpuUsage(pdMS_TO_TICKS(1000));
             }
         }
-    }
-}
-
-void Application::WakeDisplay() {
-    if (!lcd_sleeping_) {
-        return;
-    }
-
-    auto backlight = Board::GetInstance().GetBacklight();
-    if (backlight) {
-        backlight->RestoreBrightness();
-        lcd_sleeping_ = false;
-        ESP_LOGI(TAG, "LCD awake");
-    }
-}
-
-void Application::CheckDisplaySleep() {
-    constexpr int kLcdSleepSeconds = 30;
-
-    if (lcd_sleeping_ || GetDeviceState() != kDeviceStateIdle ||
-        clock_ticks_ < kLcdSleepSeconds) {
-        return;
-    }
-
-    auto backlight = Board::GetInstance().GetBacklight();
-    if (backlight) {
-        backlight->SetBrightness(0, false);
-        lcd_sleeping_ = true;
-        ESP_LOGI(TAG, "LCD sleep after %d seconds idle", kLcdSleepSeconds);
     }
 }
 
@@ -350,7 +301,6 @@ void Application::HandleNetworkConnectedEvent() {
     auto display = Board::GetInstance().GetDisplay();
     display->UpdateStatusBar(true);
 
-GeniusClient::GetInstance().RecordDiagnosticEvent("network_connected");
 GeniusClient::GetInstance().Start();
 }
 
@@ -488,22 +438,11 @@ void Application::CheckNewVersion() {
             }
 
             char error_message[128];
-            int error_message_length =
-                snprintf(error_message, sizeof(error_message), "code=%d, url=%s", err,
-                         ota_->GetCheckVersionUrl().c_str());
-            if (error_message_length < 0 ||
-                error_message_length >= static_cast<int>(sizeof(error_message))) {
-                snprintf(error_message, sizeof(error_message), "code=%d", err);
-            }
-
-            char buffer[320];
-            int alert_message_length =
-                snprintf(buffer, sizeof(buffer), Lang::Strings::CHECK_NEW_VERSION_FAILED,
-                         retry_delay, error_message);
-            if (alert_message_length < 0 ||
-                alert_message_length >= static_cast<int>(sizeof(buffer))) {
-                snprintf(buffer, sizeof(buffer), "code=%d", err);
-            }
+            snprintf(error_message, sizeof(error_message), "code=%d, url=%s", err,
+                     ota_->GetCheckVersionUrl().c_str());
+            char buffer[256];
+            snprintf(buffer, sizeof(buffer), Lang::Strings::CHECK_NEW_VERSION_FAILED, retry_delay,
+                     error_message);
             Alert(Lang::Strings::ERROR, buffer, "cloud_off", Lang::Sounds::OGG_EXCLAMATION);
 
             ESP_LOGW(TAG, "Check new version failed, retry in %d seconds (%d/%d)", retry_delay,
@@ -535,13 +474,10 @@ void Application::CheckNewVersion() {
         }
 
         display->SetStatus(Lang::Strings::ACTIVATION);
-// Activation code is shown to the user and waiting for the user to input
-if (ota_->HasActivationCode()) {
-    ESP_LOGW(TAG, "MINJI ACTIVATION CODE: %s",
-             ota_->GetActivationCode().c_str());
-
-    ShowActivationCode(ota_->GetActivationCode(), ota_->GetActivationMessage());
-}
+        // Activation code is shown to the user and waiting for the user to input
+        if (ota_->HasActivationCode()) {
+            ShowActivationCode(ota_->GetActivationCode(), ota_->GetActivationMessage());
+        }
 
         // This will block the loop until the activation is done or timeout
         for (int i = 0; i < 10; ++i) {
@@ -591,7 +527,6 @@ void Application::InitializeProtocol() {
     });
 
     protocol_->OnAudioChannelOpened([this, codec, &board]() {
-        GeniusClient::GetInstance().RecordDiagnosticEvent("audio_channel_opened");
         board.SetPowerSaveLevel(PowerSaveLevel::PERFORMANCE);
         if (protocol_->server_sample_rate() != codec->output_sample_rate()) {
             ESP_LOGW(TAG,
@@ -602,7 +537,6 @@ void Application::InitializeProtocol() {
     });
 
     protocol_->OnAudioChannelClosed([this, &board]() {
-        GeniusClient::GetInstance().RecordDiagnosticEvent("audio_channel_closed");
         board.SetPowerSaveLevel(PowerSaveLevel::LOW_POWER);
         Schedule([this]() {
             auto display = Board::GetInstance().GetDisplay();
@@ -625,13 +559,11 @@ void Application::InitializeProtocol() {
             }
             if (strcmp(state->valuestring, "start") == 0) {
                 Schedule([this]() {
-                    GeniusClient::GetInstance().RecordDiagnosticEvent("tts_start");
                     aborted_ = false;
                     SetDeviceState(kDeviceStateSpeaking);
                 });
             } else if (strcmp(state->valuestring, "stop") == 0) {
                 Schedule([this]() {
-                    GeniusClient::GetInstance().RecordDiagnosticEvent("tts_stop");
                     if (GetDeviceState() == kDeviceStateSpeaking) {
                         if (listening_mode_ == kListeningModeManualStop) {
                             SetDeviceState(kDeviceStateIdle);
@@ -639,7 +571,6 @@ void Application::InitializeProtocol() {
                             SetDeviceState(kDeviceStateListening);
                         }
                     }
-                    TryRunPendingMediaStart();
                 });
             } else if (strcmp(state->valuestring, "sentence_start") == 0) {
                 auto text = cJSON_GetObjectItem(root, "text");
@@ -883,10 +814,6 @@ void Application::HandleStopListeningEvent() {
 }
 
 void Application::HandleWakeWordDetectedEvent() {
-    GeniusClient::GetInstance().RecordDiagnosticEvent("wake_word_detected");
-    // Wake the screen immediately on the wake event, before conversation logic.
-    WakeDisplay();
-
     if (!protocol_) {
         return;
     }
@@ -894,12 +821,6 @@ void Application::HandleWakeWordDetectedEvent() {
     auto state = GetDeviceState();
     auto wake_word = audio_service_.GetLastWakeWord();
     ESP_LOGI(TAG, "Wake word detected: %s (state: %d)", wake_word.c_str(), (int)state);
-
-    // Local radio/music uses a separate Genius audio task and is not stopped by
-    // AbortSpeaking(). Stop it immediately on wake so the microphone gets a clean
-    // channel and the following voice command is not masked by the media itself.
-    CancelPendingMediaStart();
-    GeniusClient::GetInstance().StopAudio();
 
     if (state == kDeviceStateIdle) {
         BeginWakeWordInvoke(wake_word);
@@ -989,9 +910,6 @@ void Application::ContinueWakeWordInvoke(const std::string& wake_word) {
 
 void Application::HandleStateChangedEvent() {
     DeviceState new_state = state_machine_.GetState();
-
-    // LCD-only sleep: any state transition is real user/device activity.
-    WakeDisplay();
     clock_ticks_ = 0;
     // Any state change invalidates a pending deferred listening start;
     // the Listening case below re-arms it when needed.
@@ -1002,11 +920,19 @@ void Application::HandleStateChangedEvent() {
     auto led = board.GetLed();
     led->OnStateChanged();
 
+    // Mouth animation follows the device speaking state directly.
+    // It is intentionally independent from facial emotion messages
+    // such as "happy" that may arrive from the server while talking.
+    if (MinjiFace::IsReady()) {
+        MinjiFace::SetSpeaking(
+            new_state == kDeviceStateSpeaking
+        );
+    }
+
     switch (new_state) {
         case kDeviceStateUnknown:
         case kDeviceStateIdle:
 		
-            GeniusClient::GetInstance().RecordDiagnosticEvent("state_idle");
             display->SetStatus(Lang::Strings::STANDBY);
             display->ClearChatMessages();    // Clear messages first
             display->SetEmotion("neutral");  // Then set emotion (wechat mode checks child count)
@@ -1014,16 +940,14 @@ void Application::HandleStateChangedEvent() {
             audio_service_.EnableWakeWordDetection(true);
             break;
         case kDeviceStateConnecting:
-            GeniusClient::GetInstance().RecordDiagnosticEvent("state_connecting");
             display->SetStatus(Lang::Strings::CONNECTING);
             display->SetEmotion("neutral");
             display->SetChatMessage("system", "");
             break;
         case kDeviceStateListening:
 
-            GeniusClient::GetInstance().RecordDiagnosticEvent("state_listening");
             display->SetStatus(Lang::Strings::LISTENING);
-            display->SetEmotion("neutral");
+            display->SetEmotion("listening");
 
             // Make sure the audio processor is running
             if (play_popup_on_listening_ || !audio_service_.IsAudioProcessorRunning()) {
@@ -1042,8 +966,8 @@ void Application::HandleStateChangedEvent() {
             break;
         case kDeviceStateSpeaking:
 
-            GeniusClient::GetInstance().RecordDiagnosticEvent("state_speaking");
             display->SetStatus(Lang::Strings::SPEAKING);
+            display->SetEmotion("speaking");
 
             if (listening_mode_ != kListeningModeRealtime) {
                 audio_service_.EnableVoiceProcessing(false);
@@ -1070,7 +994,6 @@ void Application::StartListeningAudio() {
     }
 
     // Send the start listening command
-    GeniusClient::GetInstance().RecordDiagnosticEvent("listening_audio_start");
     protocol_->SendStartListening(listening_mode_);
     audio_service_.EnableVoiceProcessing(true);
 
@@ -1080,9 +1003,6 @@ void Application::StartListeningAudio() {
     if (play_popup_on_listening_) {
         play_popup_on_listening_ = false;
         audio_service_.PlaySound(Lang::Sounds::OGG_POPUP);
-
-        ESP_LOGI(TAG, "Wake popup guard: 300 ms");
-        vTaskDelay(pdMS_TO_TICKS(300));
     }
 }
 
@@ -1104,53 +1024,7 @@ void Application::Schedule(std::function<void()>&& callback) {
     xEventGroupSetBits(event_group_, MAIN_EVENT_SCHEDULE);
 }
 
-void Application::RunMediaAfterSpeaking(std::function<void()>&& callback) {
-    if (!callback) {
-        return;
-    }
-
-    if (GetDeviceState() == kDeviceStateSpeaking || !audio_service_.IsPlaybackIdle()) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        pending_media_start_ = std::move(callback);
-        GeniusClient::GetInstance().RecordDiagnosticEvent("media_start_deferred");
-        ESP_LOGI(TAG, "Media start deferred until assistant TTS is drained");
-        return;
-    }
-
-    GeniusClient::GetInstance().RecordDiagnosticEvent("media_start_now");
-    callback();
-}
-
-void Application::CancelPendingMediaStart() {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (pending_media_start_) {
-        ESP_LOGI(TAG, "Pending media start cancelled");
-        pending_media_start_ = nullptr;
-    }
-}
-
-void Application::TryRunPendingMediaStart() {
-    if (GetDeviceState() == kDeviceStateSpeaking || !audio_service_.IsPlaybackIdle()) {
-        return;
-    }
-
-    std::function<void()> callback;
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        callback = std::move(pending_media_start_);
-        pending_media_start_ = nullptr;
-    }
-
-    if (callback) {
-        GeniusClient::GetInstance().RecordDiagnosticEvent("media_start_after_tts");
-        ESP_LOGI(TAG, "Assistant TTS drained; starting deferred media");
-        callback();
-    }
-}
-
-
 void Application::AbortSpeaking(AbortReason reason) {
-    GeniusClient::GetInstance().RecordDiagnosticEvent("speaking_aborted");
     ESP_LOGI(TAG, "Abort speaking");
     aborted_ = true;
     if (protocol_) {
