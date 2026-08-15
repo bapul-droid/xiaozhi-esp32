@@ -2,9 +2,41 @@
 
 > **README AS REALME** — yang tertulis di sini harus mencerminkan perilaku Minji yang benar-benar terlihat di hardware, bukan sekadar kemampuan yang secara teori mungkin didukung upstream.
 
-Minji adalah turunan/custom build dari proyek [XiaoZhi ESP32](https://github.com/78/xiaozhi-esp32) yang dikembangkan menjadi perangkat AI fisik dengan wajah sendiri, hardware tetap, layanan lokal Genius, diagnostik perangkat, dukungan baterai, serta ekspansi multimedia.
+Minji adalah custom build dari [XiaoZhi ESP32](https://github.com/78/xiaozhi-esp32) yang dikembangkan menjadi perangkat AI fisik dengan wajah sendiri, hardware tetap, layanan lokal Genius, diagnostik/Black Box, operasi baterai, multimedia lokal, dan companion Bluetooth.
 
-README ini sengaja berfokus pada **hardware dan perilaku Minji yang benar-benar dipakai**. Dokumentasi upstream XiaoZhi tetap menjadi referensi untuk protokol dan komponen dasar yang belum didokumentasikan ulang di sini.
+## Minji Ecosystem
+
+Minji sekarang terdiri dari beberapa repository yang merupakan **satu project yang saling terhubung**:
+
+| Repository | Peran | Status |
+|---|---|---|
+| **[Minji Core Firmware](https://github.com/bapul-droid/xiaozhi-esp32)** | ESP32-S3 utama, Face Engine, display, audio, device integration | ✅ ACTIVE |
+| **[Minji Genius Server](https://github.com/bapul-droid/minji-genius-server)** | local services, multimedia, dashboard, Black Box | ✅ ACTIVE |
+| **[Minji A2DP Bridge](https://github.com/bapul-droid/minji-a2dp-bridge)** | ESP32-WROOM-32D Bluetooth audio companion | 🧪 EXPERIMENTAL |
+
+```text
+                  Conversation Backend
+                         │
+                         ▼
+                ┌─────────────────┐
+                │      MINJI      │
+                │    ESP32-S3     │
+                │   Core Device   │
+                └───────┬─────────┘
+                        │
+             ┌──────────┴──────────┐
+             │                     │
+       Local Network            I2S Audio
+             │                     │
+             ▼                     ▼
+   ┌──────────────────┐   ┌──────────────────┐
+   │  Genius Server   │   │ ESP32-WROOM-32D │
+   │ Media / Black Box│   │   A2DP Bridge    │
+   └──────────────────┘   └────────┬─────────┘
+                                   │ Bluetooth
+                                   ▼
+                              BT Speaker
+```
 
 ---
 
@@ -13,12 +45,13 @@ README ini sengaja berfokus pada **hardware dan perilaku Minji yang benar-benar 
 | Status | Arti |
 |---|---|
 | ✅ **CONFIRMED** | Sudah diuji langsung pada hardware Minji dan bekerja. |
-| 📋 **MANUFACTURER / SELLER SPEC** | Informasi dari nama/listing produk; belum otomatis dianggap terbukti di Minji. |
+| 📋 **MANUFACTURER / SELLER SPEC** | Informasi listing/produk; belum otomatis dianggap terbukti. |
 | 🔎 **UNDER INVESTIGATION** | Sedang diukur/ditelusuri. Jangan dijadikan dasar wiring final. |
-| 🧪 **EXPERIMENTAL** | Implementasi sudah ada atau sedang diuji, tetapi belum dianggap stabil/final. |
-| 🗺️ **PLANNED** | Masuk roadmap, belum tersedia sebagai fitur siap pakai. |
+| 🧪 **EXPERIMENTAL** | Implementasi ada/sedang diuji, tetapi belum final. |
+| 🗺️ **PLANNED** | Roadmap; belum tersedia sebagai fitur siap pakai. |
+| 📷 **PHOTO NEEDED** | Dokumentasi sudah diketahui kebutuhannya, foto final belum tersedia/terpilih. |
 
-**Aturan dokumentasi:** kata *supported* tidak dipakai sebagai sinonim *working*. Jika sesuatu ditulis **CONFIRMED**, berarti Minji benar-benar pernah menjalankannya.
+**Aturan dokumentasi:** `supported` bukan sinonim `working`. Jika ditulis **CONFIRMED**, Minji benar-benar pernah menjalankannya.
 
 ---
 
@@ -33,53 +66,50 @@ README ini sengaja berfokus pada **hardware dan perilaku Minji yang benar-benar 
 | PSRAM | 8 MB Octal |
 | Board class | N16R8 |
 | Display | TFT/LCD 1.8 inch, 128×160 |
-| Audio | I2S microphone + internal speaker path |
-| Connectivity | Wi-Fi; Bluetooth expansion terpisah sedang dikembangkan |
+| Audio | I2S microphone + internal speaker |
+| Connectivity | Wi-Fi + companion Bluetooth terpisah |
 
 Status: ✅ **CONFIRMED**
 
 ## Minji Expansion Board
 
-Nama yang digunakan dalam proyek:
+Nama project:
 
 **ESP32-S3 Smart Expansion Board V1.7**
 
-Nama lain yang umum ditemukan pada listing marketplace:
+Nama lain yang ditemukan di marketplace:
 
 > **ESP32-S3 Smart Expansion Board V1.7 | Integrated I2S Audio Amplifier with TFT Display Development Base Board N16R8 Applicable**
 
-Board ini adalah bagian penting dari hardware Minji, bukan sekadar adaptor mekanis. Pada unit yang digunakan proyek Minji, board ini terlibat pada integrasi display/audio, koneksi USB/UART, dan operasi baterai.
+Board ini merupakan bagian penting dari Minji: display/audio, koneksi USB/UART, battery/charging, dan power integration berada di sekitar platform ini.
 
 ### Confirmed on Minji
 
-- ✅ ESP32-S3 N16R8 dapat berjalan pada expansion board ini.
-- ✅ LCD 1.8 inch 128×160 bekerja dengan konfigurasi firmware Minji.
+- ✅ ESP32-S3 N16R8 berjalan pada expansion board.
+- ✅ LCD 1.8 inch 128×160 bekerja.
 - ✅ Microphone dan internal speaker bekerja.
-- ✅ Minji dapat hidup tanpa kabel USB menggunakan baterai melalui expansion board.
-- ✅ Charging battery melalui expansion board telah terlihat bekerja; LED charging menyala saat pengisian.
-- ✅ Terdapat dua jalur USB yang menunjukkan perilaku berbeda pada Windows dan pada Black Box Minji.
+- ✅ Minji dapat hidup battery-only melalui expansion board.
+- ✅ Charging battery telah terlihat bekerja; LED charging menyala.
+- ✅ Dua jalur USB menunjukkan perilaku berbeda pada Windows dan Black Box.
 
 ### Manufacturer / Seller Specification
 
-- 📋 Disebut sebagai **Smart Expansion Board V1.7** untuk ESP32-S3 N16R8.
-- 📋 Listing menyebut integrasi **I2S audio amplifier** dan **TFT display development base board**.
-
-Informasi seller di atas dicatat untuk membantu pencarian spare part. Detail elektrik tetap harus diverifikasi sebelum dipakai sebagai fakta wiring.
+- 📋 Nama produk: Smart Expansion Board V1.7 untuk ESP32-S3 N16R8.
+- 📋 Listing menyebut I2S audio amplifier dan TFT display development base board.
 
 ### Under Investigation
 
-- 🔎 Tegangan rail yang tersedia saat **battery-only**: apakah tersedia rail 5 V stabil untuk beban eksternal.
-- 🔎 Kapasitas arus rail tersebut untuk memberi daya ESP32-WROOM tambahan.
-- 🔎 Topologi charging/power-path lengkap expansion board.
-- 🔎 Titik terbaik untuk mengambil supply WROOM tanpa backfeed saat salah satu board terhubung USB.
+- 🔎 Rail power yang tersedia saat battery-only.
+- 🔎 Apakah rail 5 V stabil tersedia untuk beban eksternal.
+- 🔎 Kapasitas arus untuk ESP32-WROOM companion.
+- 🔎 Topologi charging/power-path lengkap.
+- 🔎 Titik supply WROOM yang aman dari backfeed saat USB/debug terhubung.
 
-**Jangan menghubungkan WROOM ke rail expansion secara permanen sebelum bagian ini selesai diuji.**
+📷 **PHOTO NEEDED:** expansion board top/bottom view dengan anotasi konektor dan power section.
 
 ---
 
 # 2. Known Minji Hardware Behavior
-
-Bagian ini berisi perilaku yang benar-benar terlihat saat pengujian. Ini sengaja dipisahkan dari spesifikasi seller.
 
 ## USB-C / Serial Behavior
 
@@ -87,28 +117,30 @@ Bagian ini berisi perilaku yang benar-benar terlihat saat pengujian. Ini sengaja
 
 Status: ✅ **CONFIRMED**
 
-- Windows mendeteksi sebagai **COM8** pada unit pengujian.
-- Saat boot/reset melalui jalur ini, Black Box Minji mencatat sumber reset sebagai **USB**.
+- Windows: **COM8** pada unit pengujian.
+- Black Box mencatat boot/reset jalur ini sebagai **USB**.
 - Digunakan sebagai native USB ESP32-S3.
 
 ### Port kanan — CH340C / UART
 
 Status: ✅ **CONFIRMED**
 
-- Windows mendeteksi sebagai **COM10** pada unit pengujian.
-- Jalur ini menggunakan CH340C/UART bridge.
-- Dalam Black Box Minji, boot melalui jalur ini terlihat sebagai **POWERON**, bukan USB native.
+- Windows: **COM10** pada unit pengujian.
+- Menggunakan CH340C/UART bridge.
+- Black Box melihat jalur ini sebagai **POWERON**, bukan native USB.
 
 ### Battery / Powerbank
 
 Status: ✅ **CONFIRMED**
 
-- Minji dapat tetap hidup tanpa kabel USB menggunakan baterai melalui expansion board.
-- Power dari powerbank/battery dicatat Black Box sebagai **POWERON**.
+- Minji tetap hidup tanpa USB menggunakan battery melalui expansion board.
+- Powerbank/battery terlihat sebagai **POWERON** di Black Box.
 
 ### Safety rule during testing
 
-> Hindari memakai dua sumber USB sekaligus selama eksperimen power. Saat pengujian battery/charging, gunakan satu sumber daya pada satu waktu sampai topologi power final benar-benar diketahui.
+> Hindari dua sumber USB sekaligus selama eksperimen power sampai topologi final benar-benar diketahui.
+
+📷 **PHOTO NEEDED:** foto kedua port USB-C dengan label Native USB dan CH340C/UART.
 
 ---
 
@@ -116,18 +148,18 @@ Status: ✅ **CONFIRMED**
 
 Status: ✅ **CONFIRMED**
 
-Minji menggunakan LCD **1.8 inch 128×160**. Firmware generik yang berhasil boot belum tentu menghasilkan gambar pada panel ini.
+Minji menggunakan LCD **1.8 inch 128×160**.
 
 ## Known failure: LCD putih
 
 Gejala yang pernah terjadi:
 
 - ESP32-S3 boot.
-- Audio/Wi-Fi dapat bekerja.
-- Backlight LCD menyala.
-- Tampilan tetap putih.
+- Audio/Wi-Fi bekerja.
+- Backlight menyala.
+- LCD tetap putih.
 
-Artinya perangkat **belum tentu rusak**. Pada Minji, kasus ini pernah berasal dari ketidakcocokan konfigurasi display/board.
+Pada Minji, kondisi tersebut pernah disebabkan ketidakcocokan konfigurasi display/board; bukan otomatis panel rusak.
 
 ## Known Minji LCD pin mapping
 
@@ -139,21 +171,60 @@ Artinya perangkat **belum tentu rusak**. Pada Minji, kasus ini pernah berasal da
 | LCD CS | 41 |
 | LCD BLK | 42 |
 
-Board configuration yang menjadi baseline Minji:
+Baseline board configuration:
 
 ```text
 CONFIG_BOARD_TYPE_BREAD_COMPACT_WIFI_LCD=y
 ```
 
-> Jika hardware yang terlihat sama menghasilkan LCD putih, jangan langsung mengganti panel. Cocokkan board variant, driver display, pin mapping, orientation, dan backlight configuration terlebih dahulu.
+---
+
+# 4. Minji Face Engine
+
+Status: ✅ **CONFIRMED**
+
+Face Engine adalah salah satu pembeda utama Minji dari UI XiaoZhi generik. Wajah Minji menggunakan konsep **eye-only face** tanpa mulut dan dirancang agar ekspresi dapat berkembang tanpa menjadikan core UI satu blok besar yang sulit dirawat.
+
+### Confirmed behavior
+
+- ✅ Eye-based Minji face aktif pada LCD.
+- ✅ Blink animation.
+- ✅ Gaze / pupil movement.
+- ✅ Pergerakan dibuat ringan untuk ESP32-S3.
+- ✅ Face Engine menjadi dasar pengembangan ekspresi Minji.
+
+### Design direction
+
+Face Engine disiapkan agar tampilan/ekspresi baru dapat berkembang sebagai bagian terpisah dari UI utama. Target jangka panjangnya adalah perubahan ekspresi, warna, dan behavior wajah tanpa harus mengacak keseluruhan firmware display.
+
+```text
+Minji UI / Device State
+          │
+          ▼
+     Face Engine
+          │
+    ┌─────┴─────┐
+    │           │
+  Eyes       Emotion
+    │           │
+    └─────┬─────┘
+          ▼
+      LCD 128×160
+```
+
+### Visual documentation
+
+Arsip Google Drive sudah memiliki **original design reference / concept baseline** yang menjadi referensi awal wajah Minji. Gambar tersebut belum diperlakukan sebagai foto hardware aktual.
+
+📷 **PHOTO NEEDED:** foto LCD Minji aktual dengan Face Engine aktif untuk dipasangkan dengan concept/reference image.
 
 ---
 
-# 4. Audio Hardware
+# 5. Audio Hardware
 
 Status: ✅ **CONFIRMED** untuk audio internal.
 
-## I2S microphone pins
+## I2S microphone
 
 | Signal | GPIO |
 |---|---:|
@@ -161,7 +232,7 @@ Status: ✅ **CONFIRMED** untuk audio internal.
 | MIC SCK | 5 |
 | MIC DIN | 6 |
 
-## Internal speaker I2S pins
+## Internal speaker
 
 | Signal | GPIO |
 |---|---:|
@@ -171,14 +242,15 @@ Status: ✅ **CONFIRMED** untuk audio internal.
 
 Minji dapat berbicara melalui speaker internal dan menerima suara melalui microphone internal.
 
-### Known audio issue / investigation history
+### Known audio behavior
 
-- Audio noise pernah menjadi issue investigasi pada hardware Minji.
-- Media playback dan voice interaction harus diperlakukan sebagai pipeline yang berbeda agar perintah suara tetap dapat diterima ketika media aktif.
+- Audio noise pernah menjadi issue investigasi.
+- Media playback dan voice/listening pipeline harus tetap dipisahkan dengan benar.
+- Minji pernah mengalami kondisi media aktif membuat perangkat tampak "budek"; ini merupakan behavior penting untuk regression testing.
 
 ---
 
-# 5. Battery & Power Architecture
+# 6. Battery & Power Architecture
 
 ## Current confirmed state
 
@@ -188,7 +260,7 @@ Status: ✅ **CONFIRMED**
 Battery
    │
    ▼
-Minji Expansion Board V1.7
+Expansion Board V1.7
    │
    ▼
 ESP32-S3 Minji
@@ -199,8 +271,6 @@ Minji sudah dapat beroperasi battery-only.
 ## Target dual-ESP architecture
 
 Status: 🔎 **UNDER INVESTIGATION**
-
-Target untuk Minji + Bluetooth gateway:
 
 ```text
                  Battery
@@ -218,27 +288,26 @@ Prinsip target:
 
 - Satu battery system.
 - Common ground antara ESP32-S3 dan WROOM.
-- Hindari memberi WROOM dari rail 3.3 V Minji tanpa verifikasi kapasitas regulator.
-- Jika expansion board memiliki rail 5 V stabil dengan arus cukup, WROOM mungkin dapat mengambil supply dari rail tersebut.
-- Jika tidak, gunakan regulator/boost terpisah yang sesuai.
-- Proteksi backfeed perlu ditentukan setelah topologi power aktual diketahui; jangan menganggap satu dioda otomatis menyelesaikan semua skenario.
+- Jangan memberi WROOM dari rail 3.3 V tanpa verifikasi kapasitas regulator.
+- Rail 5 V expansion baru boleh dianggap solusi setelah voltage/current diuji.
+- Proteksi backfeed ditentukan setelah topologi aktual diketahui.
+
+📷 **PHOTO NEEDED:** battery connector/polarity, charging section, dan final dual-ESP power wiring setelah tervalidasi.
 
 ---
 
-# 6. Bluetooth Audio Expansion
+# 7. Bluetooth Audio Expansion
 
 ## ESP32-WROOM-32D Bluetooth Gateway
 
 Status: 🧪 **EXPERIMENTAL**
 
-WROOM dipakai sebagai subsystem Bluetooth terpisah karena Bluetooth audio tidak dijalankan oleh jalur utama Minji ESP32-S3.
-
-Target arsitektur:
+WROOM adalah companion processor untuk membawa audio Minji ke Bluetooth speaker melalui Classic Bluetooth A2DP.
 
 ```text
 Minji ESP32-S3
       │
-      │ I2S audio
+      │ I2S
       ▼
 ESP32-WROOM-32D
       │
@@ -247,103 +316,72 @@ ESP32-WROOM-32D
 Bluetooth Speaker
 ```
 
-Current direction untuk jalur audio Minji → WROOM:
+Current investigation untuk input Minji → WROOM:
 
-- target sample rate: **24 kHz**
-- sample width: **32-bit**
-- channel: **mono LEFT**
+- **24 kHz**
+- **32-bit**
+- **mono LEFT**
 
-Konfigurasi receiver lama 44.1 kHz tidak dianggap konfigurasi final Minji.
+Konfigurasi generic/receiver lama **44.1 kHz** tidak dianggap konfigurasi final Minji.
 
-### Planned extension: Bluetooth microphone / Remote Ear
+Standalone WROOM telah membuktikan sisi Bluetooth/A2DP dapat bekerja, tetapi jalur fisik Minji → WROOM belum dipromosikan menjadi `CONFIRMED` sampai audio Minji berhasil end-to-end.
+
+### Technical reference
+
+➡️ **[Minji A2DP Bridge](https://github.com/bapul-droid/minji-a2dp-bridge)** — firmware WROOM, status pengujian, audio format, wiring yang sedang divalidasi, dan dokumentasi Bluetooth companion.
+
+### Planned: Bluetooth microphone / Remote Ear
 
 Status: 🗺️ **PLANNED**
 
-A2DP hanya menangani output media. Microphone pada Bluetooth speaker/headset membutuhkan profile/jalur lain seperti HFP/HSP jika ingin dipakai sebagai input Minji.
+A2DP menangani output. Input microphone Bluetooth membutuhkan profile/jalur lain seperti HFP/HSP dan belum dianggap fitur siap pakai.
 
-Konsep ini belum dianggap fitur siap pakai.
+📷 **PHOTO NEEDED:** final Minji ↔ WROOM wiring setelah BCLK/WS/DATA dan power benar-benar lolos pengujian.
 
 ---
 
-# 7. Minji Software / Service Architecture
+# 8. Genius Local Services
 
-Minji tidak didesain sebagai chatbot ESP32 generik. Target arsitekturnya memisahkan percakapan utama dari layanan lokal khusus.
+Status: ✅ **CONFIRMED** untuk integrasi yang sudah digunakan Minji.
+
+Genius adalah **local service layer** Minji. Ia menangani fungsi yang lebih tepat berada di server lokal daripada ditanam seluruhnya ke firmware ESP32.
 
 ```text
-                    ┌─────────────────────┐
-                    │ Conversation backend│
-                    │      VN / cloud     │
-                    └─────────┬───────────┘
-                              │
-                              ▼
-                         MINJI ESP32-S3
-                              │
-                    special/local requests
-                              │
-                              ▼
-                    ┌─────────────────────┐
-                    │    Genius Local     │
-                    │ radio / media/tools │
-                    └─────────────────────┘
+Normal conversation
+        │
+        └──> Conversation backend
+
+Local / multimedia / diagnostic
+        │
+        └──> Genius Local Server
+                ├── radio / media
+                ├── dashboard
+                ├── Black Box
+                └── local tools
 ```
 
-Design rule:
+Confirmed pada project Minji:
 
-- Percakapan normal tetap ditangani conversation backend.
-- Request khusus layanan Indonesia/local dapat diarahkan ke Genius/local tools.
-- Multimedia lokal tidak perlu bergantung pada SD card jika server lokal menyediakan source media.
-- MCP/cloud tooling dapat menjadi extension layer tanpa membuat ESP32 harus menangani seluruh logika layanan sendiri.
-
----
-
-# 8. Feature Reality Check
-
-## Confirmed Working
-
-- ✅ ESP32-S3 N16R8 boot dan operasi normal.
-- ✅ LCD Minji 128×160.
-- ✅ Minji Face Engine / eye-based UI.
-- ✅ Blink dan gaze/pupil movement.
-- ✅ Internal microphone.
-- ✅ Internal speaker / voice output.
-- ✅ Wi-Fi.
-- ✅ VN conversation backend yang digunakan Minji.
 - ✅ Genius local service integration.
-- ✅ Local radio / media playback melalui Genius.
-- ✅ Battery-only operation.
-- ✅ Charging melalui expansion board.
-- ✅ Device diagnostics / Black Box reset history.
-- ✅ Volume control GPIO implementation pada Minji.
-- ✅ True stop local audio/media.
+- ✅ Local radio/media path.
+- ✅ Dashboard/device information.
+- ✅ Black Box diagnostic integration.
 
-## Experimental
+MCP/local-tool expansion tetap dicatat sebagai evolving/planned sampai jalur end-to-end yang dipakai Minji benar-benar tervalidasi.
 
-- 🧪 ESP32-WROOM-32D Bluetooth A2DP gateway.
-- 🧪 I2S audio handoff Minji → WROOM.
-- 🧪 Final dual-ESP power distribution.
+### Server reference
 
-## Under Investigation
-
-- 🔎 Expansion-board 5 V rail saat battery-only.
-- 🔎 Maximum safe external load untuk WROOM.
-- 🔎 Battery sense GPIO / ADC source.
-- 🔎 Final anti-backfeed arrangement untuk service/debug USB.
-
-## Planned
-
-- 🗺️ Bluetooth microphone as external/remote ear.
-- 🗺️ Selectable internal vs Bluetooth audio destination.
-- 🗺️ Translator role/tool.
-- 🗺️ Calculator/tool-assisted arithmetic.
-- 🗺️ Additional local/MCP services.
+➡️ **[Minji Genius Server](https://github.com/bapul-droid/minji-genius-server)** — implementation/reference untuk local services, multimedia, dashboard, Black Box, persistent-memory component, dan perkembangan MCP/local tools.
 
 ---
 
 # 9. Minji Diagnostics / Black Box
 
-Minji mempunyai diagnostic/Black Box yang dipakai untuk membantu membedakan reset dan masalah power.
+Status: ✅ **CONFIRMED**
 
-Contoh kategori yang sudah terlihat:
+Black Box digunakan untuk melihat behavior perangkat tanpa bergantung hanya pada USB serial log.
+
+Kategori reset yang sudah terlihat:
 
 - `POWERON`
 - `USB`
@@ -351,104 +389,168 @@ Contoh kategori yang sudah terlihat:
 - `PANIC`
 - `BROWNOUT`
 
-Rolling history membantu membedakan restart normal dari reset karena watchdog/panic/brownout.
+Rolling history membantu membedakan power cycle biasa dari watchdog, panic, atau brownout.
 
-Catatan UI: jika dashboard menampilkan label **Server Uptime** untuk uptime perangkat, label itu sebaiknya dibaca/diperbaiki menjadi **Minji Uptime / Device Uptime** agar tidak rancu dengan uptime proses Genius Server.
+Black Box juga berguna ketika menguji battery-only, charging, perbedaan dua USB-C, dan nantinya shared-power Minji + WROOM.
+
+> Jika dashboard menampilkan **Server Uptime** untuk uptime perangkat, label sebaiknya dibedakan menjadi **Minji Uptime / Device Uptime** agar tidak rancu dengan uptime Genius Server.
+
+### Black Box implementation/reference
+
+➡️ **[Minji Genius Server — Black Box / local diagnostics](https://github.com/bapul-droid/minji-genius-server)**
+
+📷 **PHOTO NEEDED:** screenshot dashboard Black Box/System Health final dengan label uptime yang tidak rancu.
 
 ---
 
-# 10. Development Environment
+# 10. Feature Reality Check
 
-Environment Minji yang digunakan pada PC pengembangan:
+## Confirmed Working
+
+- ✅ ESP32-S3 N16R8 boot dan operasi normal.
+- ✅ LCD 128×160.
+- ✅ Minji Face Engine / eye-based UI.
+- ✅ Blink + gaze/pupil movement.
+- ✅ Internal microphone.
+- ✅ Internal speaker / voice output.
+- ✅ Wi-Fi.
+- ✅ VN conversation backend yang digunakan Minji.
+- ✅ Genius local service integration.
+- ✅ Local radio/media playback melalui Genius.
+- ✅ Battery-only operation.
+- ✅ Charging melalui expansion board.
+- ✅ Black Box/reset history.
+- ✅ Volume-control GPIO implementation.
+- ✅ True stop local audio/media.
+
+## Experimental
+
+- 🧪 ESP32-WROOM-32D Bluetooth A2DP gateway.
+- 🧪 I2S handoff Minji → WROOM.
+- 🧪 Final dual-ESP power distribution.
+
+## Under Investigation
+
+- 🔎 Expansion-board 5 V rail saat battery-only.
+- 🔎 Maximum safe external load untuk WROOM.
+- 🔎 Battery sense GPIO / ADC source.
+- 🔎 Final anti-backfeed arrangement.
+
+## Planned
+
+- 🗺️ Bluetooth microphone / Remote Ear.
+- 🗺️ Selectable internal vs Bluetooth audio destination.
+- 🗺️ Translator role/tool.
+- 🗺️ Calculator/tool-assisted arithmetic.
+- 🗺️ Additional MCP/local services.
+
+---
+
+# 11. Development Environment
+
+Current Minji PC development baseline:
 
 - Windows
-- workspace utama: `D:\xiaozhi-esp32`
-- ESP-IDF environment utama: **v5.5.5**
-- terminal kerja: **LAB Terminal**
+- workspace: `D:\xiaozhi-esp32`
+- ESP-IDF: **v5.5.5**
+- primary shell: **LAB Terminal**
 
-Workflow terminal dibuat agar pekerjaan ESP-IDF tidak perlu berpindah-pindah shell/environment secara manual.
-
-> Upstream XiaoZhi dapat bergerak ke versi ESP-IDF yang berbeda. Dokumentasi Minji harus mengikuti environment yang benar-benar dipakai untuk build Minji, bukan otomatis mengikuti versi upstream terbaru.
+Upstream XiaoZhi dapat bergerak ke versi ESP-IDF lain. Dokumentasi Minji mengikuti environment yang benar-benar digunakan untuk build Minji.
 
 ---
 
-# 11. Troubleshooting Quick Reference
+# 12. Troubleshooting Quick Reference
 
 ## LCD putih setelah flash
 
-Periksa:
-
-1. board variant yang dipilih,
-2. driver LCD,
-3. pin mapping,
-4. orientation/display init,
-5. backlight GPIO.
-
-Jika device masih bersuara atau tersambung Wi-Fi, jangan langsung menyimpulkan LCD rusak.
+Periksa board variant, driver LCD, pin mapping, orientation/display init, dan backlight GPIO. Jika audio/Wi-Fi masih bekerja, jangan langsung menyimpulkan LCD rusak.
 
 ## Device restart berulang
 
-Periksa Black Box:
+Gunakan Black Box untuk membedakan `POWERON`, `USB`, `WATCHDOG`, `PANIC`, dan `BROWNOUT`.
 
-- `POWERON` → power cycle/start biasa,
-- `USB` → native USB boot/reset,
-- `WATCHDOG` → task/firmware stall,
-- `PANIC` → software exception/crash,
-- `BROWNOUT` → supply drop perlu diperiksa.
+➡️ Detail server/dashboard: **[Minji Genius Server](https://github.com/bapul-droid/minji-genius-server)**
 
 ## Minji tidak mendengar saat media aktif
 
-Pastikan jalur media tidak memblokir microphone/listening pipeline. Minji telah mengalami kasus media playback yang membuat perangkat tampak "budek"; perbaikannya harus mempertahankan kemampuan wake/listen ketika media berjalan.
+Pastikan media playback tidak memblokir microphone/listening pipeline. Kondisi ini pernah terjadi pada Minji dan harus diperlakukan sebagai regression case.
 
 ## WROOM tidak menerima audio
 
-Sebelum menyalahkan Bluetooth:
+Sebelum menyalahkan Bluetooth, verifikasi:
 
-- verifikasi breadboard row/continuity,
+- breadboard row/continuity,
 - common ground,
 - BCLK,
 - WS/LRCK,
 - DATA,
 - sample format/rate,
-- dan pastikan receiver tidak masih memakai konfigurasi 44.1 kHz lama.
+- receiver tidak masih memakai asumsi 44.1 kHz lama.
+
+➡️ Detail subsystem: **[Minji A2DP Bridge](https://github.com/bapul-droid/minji-a2dp-bridge)**
 
 ---
 
-# 12. Documentation Gaps — What We Still Need
+# 13. Documentation Gaps / PHOTO NEEDED
 
-Bagian ini sengaja dibiarkan sebagai checklist supaya terlihat jelas apa yang masih kurang dari "Kitab Minji".
+Checklist ini sengaja dipertahankan agar yang belum terdokumentasi terlihat jelas dan tidak diganti dengan tebakan.
 
-- [ ] Foto keseluruhan **Minji Expansion Board V1.7 — sisi atas** dengan anotasi.
-- [ ] Foto keseluruhan **Minji Expansion Board V1.7 — sisi bawah** dengan anotasi.
-- [ ] Foto **ESP32-S3 N16R8 terpasang pada expansion board**.
-- [ ] Foto lokasi **USB-C kiri / Native USB**.
-- [ ] Foto lokasi **USB-C kanan / CH340C UART**.
-- [ ] Foto konektor battery + polaritas yang sudah diverifikasi.
-- [ ] Foto charging LED dan lokasi power section.
-- [ ] Foto LCD/display connector.
-- [ ] Foto microphone/speaker connector/path.
-- [ ] Foto wiring **Minji ↔ WROOM** setelah jalur I2S final.
-- [ ] Diagram pinout expansion board yang sudah diverifikasi.
-- [ ] Hasil ukur battery-only rail: voltage dan titik ukur.
-- [ ] Hasil uji current/load rail untuk WROOM.
+- [ ] 📷 Expansion Board V1.7 — top view beranotasi.
+- [ ] 📷 Expansion Board V1.7 — bottom view beranotasi.
+- [ ] 📷 ESP32-S3 N16R8 terpasang pada expansion board.
+- [ ] 📷 USB-C kiri / Native USB.
+- [ ] 📷 USB-C kanan / CH340C UART.
+- [ ] 📷 Battery connector + polaritas terverifikasi.
+- [ ] 📷 Charging LED + power section.
+- [ ] 📷 LCD/display connector.
+- [ ] 📷 Microphone/speaker path.
+- [ ] 📷 Face Engine actual LCD photo.
+- [ ] 📷 Minji ↔ WROOM final wiring.
+- [ ] 📷 Genius dashboard / Black Box final screenshot.
+- [ ] Diagram pinout expansion board terverifikasi.
+- [ ] Battery-only rail voltage + titik ukur.
+- [ ] Current/load test rail untuk WROOM.
 - [ ] Final dual-ESP power schematic.
-- [ ] Final A2DP wiring dan audio format setelah berhasil stabil.
-- [ ] Screenshot dashboard System Health/Black Box yang sudah memakai label `Minji Uptime`.
-- [ ] `CHANGELOG.md` versi Minji berdasarkan release/tag yang benar-benar digunakan.
+- [ ] Final A2DP wiring + audio format setelah stabil.
+- [ ] `CHANGELOG.md` Minji berdasarkan release/tag yang benar-benar digunakan.
+
+### Existing visual archive
+
+Google Drive sudah memiliki sejumlah foto/screenshot dan original Face Engine design reference. Arsip tersebut sedang dipilah; hanya gambar yang identitas dan konteksnya jelas yang layak dipindahkan menjadi dokumentasi resmi.
+
+**Jangan memasukkan foto eksperimen sebagai recommended wiring.** Foto kegagalan boleh dipakai untuk troubleshooting jika diberi konteks yang jelas.
 
 ---
 
-# 13. Upstream & Credits
+# 14. Repository Cross-Reference
 
-Minji dibangun di atas proyek open-source **XiaoZhi ESP32**.
+## Minji Core Firmware
 
-Upstream:
+**This repository** — ESP32-S3 device, Face Engine, hardware integration, audio, power behavior, dan device-side integration.
 
-- https://github.com/78/xiaozhi-esp32
+## Minji Genius Server
 
-Lisensi repository tetap mengikuti file [LICENSE](LICENSE) yang ada pada project ini.
+https://github.com/bapul-droid/minji-genius-server
 
-Tujuan dokumentasi Minji bukan menggantikan seluruh dokumentasi XiaoZhi, tetapi mencatat secara presisi **hardware, konfigurasi, perilaku, dan fitur yang benar-benar digunakan oleh Minji**.
+Local services, multimedia, dashboard, Black Box, persistent-memory component, dan local/MCP tooling.
+
+## Minji A2DP Bridge
+
+https://github.com/bapul-droid/minji-a2dp-bridge
+
+ESP32-WROOM-32D Bluetooth audio companion dan jalur eksperimen Minji → I2S → A2DP → Bluetooth speaker.
+
+---
+
+# 15. Upstream & Credits
+
+Minji dibangun di atas proyek open-source **XiaoZhi ESP32**:
+
+https://github.com/78/xiaozhi-esp32
+
+Lisensi repository tetap mengikuti [LICENSE](LICENSE).
+
+Tujuan dokumentasi Minji bukan menggantikan seluruh dokumentasi XiaoZhi, tetapi mencatat secara presisi **hardware, konfigurasi, perilaku, dan fitur yang benar-benar digunakan Minji**.
 
 ---
 
