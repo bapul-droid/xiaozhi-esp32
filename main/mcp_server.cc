@@ -224,6 +224,17 @@ void McpServer::AddUserOnlyTools() {
     );
 
     AddTool(
+        "self.bluetooth.scan",
+        "Scan for nearby Classic Bluetooth devices and return the visible device names, signal levels, and addresses. "
+        "Use this when the user asks Minji to scan, look for, or list nearby Bluetooth devices. "
+        "The external Bluetooth speaker must be disconnected before scanning.",
+        PropertyList(),
+        [](const PropertyList&) -> ReturnValue {
+            return WroomCompanion::GetInstance().ScanDevices();
+        }
+    );
+
+    AddTool(
         "self.bluetooth.set_volume",
         "Set the external Bluetooth speaker volume from 0 to 100. "
         "Use this only when the user explicitly mentions Bluetooth, Edifier, or the external speaker. "
