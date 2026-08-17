@@ -1,6 +1,6 @@
 # MINJI_PROJECT_STATE
 
-**Snapshot:** 17 Agustus 2026  
+**Snapshot:** 17 Agustus 2026 — Audio Separation + BT Control CLOSED  
 **Repository:** `bapul-droid/xiaozhi-esp32`
 
 Dokumen ini adalah state terpadu proyek Minji dari checkpoint berbagai meja. Fakta terbaru mengoreksi checkpoint lama bila terjadi konflik.
@@ -201,7 +201,7 @@ Status: **belum mendapatkan pengujian suara final yang memadai**.
 
 Pekerjaan ini tetap server-side, terutama `server/genius/minji/calculation.py`, dan sebisa mungkin tidak menyentuh firmware stabil Minji.
 
-## 9. WROOM / A2DP — Working Baseline
+## 9. WROOM / A2DP / Audio Separation — FINAL WORKING BASELINE
 
 Companion:
 
@@ -209,222 +209,236 @@ Companion:
 
 Project Windows:
 
-`D:\esp32-a2dp-test`
+`D:\\esp32-a2dp-test`
 
-Bridge I2S PCM -> A2DP sudah pernah CONFIRMED WORKING dan stabil.
+Status akhir: **CONFIRMED WORKING, STABLE, CLOSED**.
 
-Format working lama:
-
-- 24 kHz
-- 32-bit
-- mono-left
-- WROOM mengonversi ke 44.1 kHz stereo untuk A2DP.
-
-Bluetooth startup WROOM ditunda sekitar 8 detik agar tidak mengganggu asosiasi Wi-Fi Minji.
-
-UART tambahan yang sudah terpasang:
+Arsitektur final:
 
 ```text
-Minji G18 <- WROOM GPIO17/TX2
-Minji G3  -> WROOM GPIO16/RX2
-```
-
-Penambahan UART tidak menyebabkan crash/reset, tetapi fungsi kontrol dua arah belum menjadi fitur final.
-
-## 10. Audio Separation — Target Aktif
-
-Target final:
-
-```text
-TTS / conversation
+TTS / conversation / news
         -> speaker internal Minji
 
-Radio / music Genius
-        -> WROOM
-        -> A2DP
-        -> Edifier M260
+Radio / online music Genius
+        -> jika Edifier CONNECTED:
+           I2S media route -> WROOM -> A2DP -> Edifier
+
+        -> jika Edifier DISCONNECTED/OFF:
+           otomatis kembali ke speaker internal Minji
 ```
 
-### Source aktif
+Format audio menuju WROOM:
 
-CMake mengonfirmasi file yang benar-benar digunakan:
+- 24 kHz;
+- 32-bit I2S;
+- mono-left;
+- WROOM meneruskan ke Edifier melalui A2DP.
+
+Tidak dibuat controller I2S ketiga. Firmware merutekan ulang channel TX speaker yang sudah ada.
+
+## 10. Wiring Final — CONFIRMED dan FROZEN
+
+### Audio I2S
 
 ```text
-main/audio/audio_service.cc
-main/genius_client/audio_stream_client.cc
+Minji GPIO17 -> WROOM GPIO27  BCLK
+Minji GPIO13 -> WROOM GPIO14  WS/LRCK
+Minji GPIO14 -> WROOM GPIO22  DATA
+Minji GND    -> WROOM GND
 ```
 
-File berikut bukan implementation aktif yang harus dijadikan dasar:
+### UART control
 
 ```text
-main/genius_client/audio_service.cc
-main/audio/audio_stream_client.cc
+Minji GPIO18 TX -> WROOM GPIO16 RX
+Minji GPIO3  RX <- WROOM GPIO17 TX
+Minji GND       -> WROOM GND
 ```
 
-Jangan kembali mengedit file duplikat yang tidak masuk build.
+Mapping ini telah diuji pada hardware nyata. Radio/music terdengar di Edifier, TTS tetap internal, UART dua arah bekerja, dan tidak terjadi crash.
 
-### genius_media
+**KEPUTUSAN:** wiring final dikunci. Jangan kembali ke mapping lama G15/G16/G7 menuju WROOM. G15/G16/G7 sekarang tetap menjadi jalur speaker internal Minji.
 
-Genius stream sudah menandai radio/music dengan `genius_media = true`, dan flag tersebut dibawa melalui decode queue sampai output task.
+## 11. Bluetooth Companion Control — CONFIRMED
 
-Dengan demikian firmware sudah dapat membedakan audio normal dengan radio/music Genius.
+Protokol UART:
 
-Root cause double internal audio ditemukan di active `main/audio/audio_service.cc`: output stage sebelumnya selalu menjalankan `codec_->OutputData(task->pcm)` tanpa memanfaatkan klasifikasi `task->genius_media`.
+- baud 115200;
+- `PING`;
+- `BT STATUS`;
+- `BT CONNECT`;
+- `BT DISCONNECT`;
+- `BT VOLUME 0..100`.
 
-## 11. Audio Separation V1 — Half Success
+MCP Minji:
 
-V1 telah dibuat, build berhasil, flash berhasil, dan diuji pada hardware.
+- `self.bluetooth.get_status`;
+- `self.bluetooth.connect`;
+- `self.bluetooth.disconnect`;
+- `self.bluetooth.set_volume`.
 
-Hasil:
+Pengujian suara yang berhasil:
+
+- “Putuskan speaker Bluetooth” -> `AUTO=0`, A2DP/AVRCP disconnected.
+- “Hubungkan kembali speaker Bluetooth” -> `AUTO=1`, A2DP lalu AVRCP connected.
+- “Kecilkan volume ke 50%” -> `OK BT VOLUME 50`.
+- Permintaan status -> mengenali `EDIFIER M260` dan volume aktual.
+
+Fallback yang berhasil:
 
 ```text
-TTS:
-Minji   = suara
-Edifier = suara
+BT EVENT DISCONNECTED
+-> I2S TX kembali G15/G16/G7
+-> media lanjut melalui speaker internal
 
-Radio:
-Minji   = DIAM
-Edifier = DIAM
+BT EVENT CONNECTED
+-> I2S TX pindah G17/G13/G14
+-> media lanjut melalui Edifier
 ```
 
-CONFIRMED dari eksperimen ini:
+Disconnect melalui perintah suara menonaktifkan auto-reconnect sampai perintah connect diberikan. Power-off Edifier dengan `AUTO=1` tetap memungkinkan reconnect otomatis saat Edifier hidup kembali.
 
-- Genius media classification bekerja.
-- Radio HTTP stream bekerja (`HTTP 200`, `audio/ogg`).
-- Opus queue/decode berjalan.
-- Internal radio mute/separation bekerja.
+Discovery/pairing perangkat Bluetooth baru belum menjadi fitur. Perintah “scan perangkat sekitar” saat ini hanya menghasilkan status perangkat paired aktif.
 
-Yang belum berhasil:
+## 12. Audio Separation — Riwayat Kegagalan dan Keputusan
 
-`media-only PCM -> working WROOM I2S path`
+### V1 — half success, ditinggalkan
 
-Jadi V1 menyelesaikan separuh arsitektur separation: radio sudah tidak bocor ke speaker internal, tetapi dedicated output ke WROOM belum benar.
+- TTS masih keluar di dua speaker.
+- Radio internal berhasil mute.
+- Radio belum sampai WROOM.
 
-## 12. Koreksi Wiring Audio — Sangat Penting
+### V2 awal — route berhasil, leakage internal
 
-Checkpoint awal pernah mencatat mapping working lama:
+- Radio mencapai WROOM/Edifier.
+- Pin output internal lama masih terikat GPIO matrix sehingga radio juga bocor ke speaker internal.
+
+### V2.1 — final
+
+`NoAudioCodec::SetOutputGpio()` diperbaiki agar:
+
+- menyimpan route lama;
+- rollback bila reconfiguration gagal;
+- melepas pin route lama dengan `gpio_reset_pin()`;
+- `RestoreOutputGpio()` mengembalikan G15/G16/G7.
+
+Hasil final:
+
+- radio/music hanya Edifier ketika connected;
+- TTS/news/conversation hanya internal;
+- Edifier offline tidak lagi membuat Minji diam;
+- tidak ada warning I2S controller occupied;
+- tidak ada crash pada pengujian final.
+
+Build fixes yang ditemukan:
+
+- WROOM status UART harus membatasi nama perangkat menjadi `%.64s` agar lolos `-Werror=format-truncation`;
+- Minji `wroom_companion.cc` memerlukan `#include <driver/gpio.h>`.
+
+## 13. Online Music Server Unicode Fix
+
+Online music sempat gagal meskipun search berhasil. Endpoint:
+
+`GET /api/radio-stream/music`
+
+menghasilkan HTTP 500 dan stream 0 byte.
+
+Root cause:
 
 ```text
-Minji G15 -> WROOM GPIO27 BCLK
-Minji G16 -> WROOM GPIO14 WS/LRCK
-Minji G7  -> WROOM GPIO22 DATA
-Minji GND -> WROOM GND
+UnicodeEncodeError: latin-1 cannot encode combining character U+0301
 ```
 
-Audio Separation V1 kemudian mencoba dedicated output:
+Judul YouTube seperti `eńau feat. Ari Lesmana...` dimasukkan ke header:
 
-```text
-GPIO17 = BCLK
-GPIO13 = WS
-GPIO14 = DATA
+```python
+"X-Radio-Station": display_name
 ```
 
-Mapping `17/13/14` **tidak boleh dianggap wiring final**. Konfigurasi terkait jalur ini pernah berhubungan dengan bootloop dan dibuat berdasarkan asumsi, bukan mapping hardware working terakhir.
+Header tersebut dihapus dari `server/genius/api/radio_proxy.py`. Setelah restart `genius.service`, online music berhasil mengalir ke Edifier.
 
-Checkpoint terbaru juga mengoreksi asumsi rewiring: pada eksperimen A2DP terakhir yang benar-benar menghasilkan audio Edifier, perubahan dilakukan **di sisi WROOM**, bukan dengan memindahkan sisi Minji seperti asumsi berikutnya.
+Commit server:
 
-Wiring working tersebut masih secara fisik terpasang; yang sempat dilepas hanya USB power WROOM.
-
-**KEPUTUSAN: wiring audio sekarang FROZEN sampai mapping A2DP working lama direkonstruksi dari meja/chat eksperimen lama.**
-
-Jangan rewire berdasarkan `17/13/14`.
-
-## 13. Audio Separation V2 — Belum Boleh Langsung Dibuat
-
-Sebelum patch/flash berikutnya, rekonstruksi terlebih dahulu kondisi A2DP working terakhir:
-
-1. Pin output Minji yang benar-benar digunakan saat WORKING.
-2. Pin WROOM sebelum dipindah.
-3. Pin WROOM setelah dipindah.
-4. Mapping BCLK / WS / DATA yang menghasilkan suara Edifier.
-5. Firmware/commit WROOM yang digunakan saat kondisi WORKING.
-
-Setelah mapping tersebut confirmed, Audio Separation V2 menggunakan prinsip:
-
-```text
-task->genius_media == false
-    -> codec internal Minji
-
-task->genius_media == true
-    -> dedicated WORKING WROOM I2S path
-    -> jangan codec internal
-```
-
-Jangan membuat controller I2S ketiga. Eksperimen V1 menunjukkan kedua controller ESP32-S3 sudah digunakan speaker TX dan microphone RX.
+- `6a3e88c` — `fix: prevent unicode crash in media stream header`
+- remote branch: `agent/server-thermal-health`
 
 ## 14. Repository / Baseline Penting
 
 ### Firmware Minji
 
-Repository: `bapul-droid/xiaozhi-esp32`
+Repository: `bapul-droid/xiaozhi-esp32`  
+Branch: `main`
 
-Checkpoint sebelumnya mencatat branch kerja `minji-main`; repository GitHub saat snapshot dokumentasi memiliki default branch `main`.
+Commit final:
 
-Commit penting:
+- `0b2f21e` — `feat: add Bluetooth companion control and audio fallback`
 
-- `c2f5dd5` — `feat: add Minji diagnostics, telemetry, watchdog recovery, and media wake`
-- `09c5744` — `fix: prevent VAD from immediately stopping media`
+Commit baseline terkait:
 
-Tag tested:
-
-- `minji-media-wake-v3-tested-20260815`
+- `4176269` — diagnostics, telemetry, watchdog recovery, dan media wake;
+- `b401ae4` — mencegah VAD langsung menghentikan media.
 
 File utama:
 
 - `main/application.cc`
-- `main/genius_client/genius_client.cc`
-- `main/genius_client/genius_client.h`
-- `main/boards/bread-compact-wifi-lcd/compact_wifi_board_lcd.cc`
 - `main/audio/audio_service.cc`
-- `main/genius_client/audio_stream_client.cc`
-
-### Genius Server
-
-Repository: `bapul-droid/minji-genius-server`  
-Branch: `main`
-
-Commit penting:
-
-- `770e2a1` — `chore: keep server environment private`
-- `76913c0` — `fix: synchronize dashboard media state with active stream`
-- `3057b88` — Quick Action Stop Media
+- `main/audio/audio_codec.cc/.h`
+- `main/audio/codecs/no_audio_codec.cc/.h`
+- `main/genius_client/genius_client.cc`
+- `main/genius_client/wroom_companion.cc/.h`
+- `main/mcp_server.cc`
 
 ### WROOM A2DP Bridge
 
 Repository: `bapul-droid/minji-a2dp-bridge`  
 Branch: `master`
 
-Commit penting:
+Commit final:
 
-- `b416d80` — `working: stable Minji I2S PCM to Edifier A2DP`
-- `f9b58d3` — `chore: stop tracking generated build artifacts`
-- `394c6c0` — `feat: delay Bluetooth startup until Minji Wi-Fi is ready`
+- `6d4f809` — `feat: add UART Bluetooth companion control`
+
+Baseline sebelumnya:
+
+- `b416d80` — stable Minji I2S PCM to Edifier A2DP;
+- `394c6c0` — delay Bluetooth startup sampai Wi-Fi Minji siap.
+
+### Genius Server
+
+Repository: `bapul-droid/minji-genius-server`
+
+Commit terkait sesi ini:
+
+- `6a3e88c` — mencegah Unicode crash pada media stream header, branch `agent/server-thermal-health`.
 
 ## 15. Closed / Jangan Dibuka Ulang Tanpa Alasan
 
 - Battery percentage presisi — CLOSED.
 - Expansion switch — CLOSED, posisi KIRI.
 - Basic battery ADC investigation — CLOSED FOR NOW.
-- GPIO11 relation to battery telemetry — CONFIRMED.
 - Media play -> immediate stop bug — FIXED.
 - Media Wake V3 — STABLE.
 - Radio HTTP/Opus path — CONFIRMED.
+- Online music Unicode header crash — FIXED.
 - `genius_media` classification — CONFIRMED.
-- Internal radio mute — CONFIRMED.
-- WROOM -> Edifier A2DP capability — CONFIRMED.
+- Audio Separation V2.1 — FINAL/CONFIRMED.
+- Wiring audio G17/G13/G14 -> WROOM 27/14/22 — FINAL/FROZEN.
+- UART G18/G3 -> WROOM 16/17 — FINAL/FROZEN.
+- WROOM status/connect/disconnect/volume — CONFIRMED.
+- Automatic internal fallback — CONFIRMED.
 - Third I2S controller approach — ABANDONED.
-- `17/13/14` assumed final wiring — REJECTED.
 - Minji Math v0.1 — ABANDONED.
 - XiaoZhi OTA — OFF.
 - Black Box — KEEP.
 
 ## 16. Active Work Queue
 
-### Priority 1 — Audio Separation V2
+### Priority 1 — Stability Observation
 
-Langkah pertama **bukan coding, patch, flash, atau rewiring**.
+Gunakan konfigurasi BT final dalam pemakaian normal. Jika terjadi reset/crash, periksa Black Box terlebih dahulu.
 
-Rekonstruksi mapping A2DP working terakhir dari meja eksperimen lama. Setelah mapping hardware confirmed, baru desain media-only routing melalui working WROOM path tanpa membuat I2S controller tambahan.
+Catatan observasi: minimum free SRAM ketika media + kontrol BT pernah turun sekitar 5–7 KB. Belum terjadi crash pada pengujian final, tetapi angka ini perlu dipantau sebelum menambahkan fitur berat baru.
+
+Status UART saat ini dipoll sekitar setiap 2 detik dan menghasilkan log yang cukup ramai. Ini dapat dibersihkan kemudian, tetapi bukan blocker fungsi.
 
 ### Priority 2 — Minji Math v0.2 STRICT
 
@@ -441,11 +455,13 @@ Minji sedang TTS panjang
 -> cari log Abort speaking
 ```
 
-Jangan langsung patch bila belum ada hasil observasi.
-
 ### Parked — Natural Barge-in / AEC
 
 Tetap menjadi target jangka panjang, tetapi tidak mengganggu baseline stabil sampai jalur AEC dan dukungan server dipahami.
+
+### Parked — Bluetooth Discovery/Pairing Baru
+
+Saat ini WROOM mengendalikan Edifier paired yang sudah dikenal. Scan, memilih, dan pairing speaker Bluetooth baru belum diimplementasikan.
 
 ## 17. Aturan Kerja Project State
 
@@ -458,7 +474,7 @@ Tetap menjadi target jangka panjang, tetapi tidak mengganggu baseline stabil sam
 7. Jangan percaya file duplikat sebelum memeriksa CMake/build path.
 8. Jangan mengubah wiring berdasarkan asumsi source code.
 9. Working hardware state lebih kuat daripada mapping teoretis.
-10. Audio wiring sekarang FROZEN sampai mapping A2DP lama ditemukan.
+10. Wiring final audio dan UART FROZEN sesuai mapping CONFIRMED pada Bagian 10.
 11. `genius_media` menjadi dasar Audio Separation.
 12. Jangan membuat I2S controller ketiga.
 13. Role/personality/memory diubah melalui console terlebih dahulu bila memungkinkan.
@@ -467,11 +483,17 @@ Tetap menjadi target jangka panjang, tetapi tidak mengganggu baseline stabil sam
 
 ## 18. Posisi Berhenti
 
-Minji bukan lagi dalam fase membuat perangkat dasar bekerja. Core device, server, media, wake, telemetry, Black Box, battery monitoring, dan A2DP sudah mempunyai baseline yang nyata.
+Integrasi Bluetooth Minji–WROOM–Edifier telah selesai dan ditutup sebagai working baseline.
 
-Target pengembangan utama sekarang adalah **Audio Separation V2**:
+Kondisi akhir:
 
-- TTS/conversation tetap melalui speaker internal Minji.
-- Radio/music Genius hanya melalui WROOM -> A2DP -> Edifier.
+- Minji mengenali WROOM dan Edifier melalui UART;
+- connect/disconnect/status/volume dapat dikontrol melalui suara;
+- radio/music pindah ke Edifier ketika connected;
+- media otomatis kembali ke speaker internal ketika Edifier disconnected/off;
+- reconnect mengembalikan media ke Edifier;
+- TTS/news/conversation tetap internal;
+- kedua repository firmware sudah bersih dan tersinkron dengan remote;
+- wiring final sudah dikunci.
 
-**NEXT ACTION yang benar:** kembali ke checkpoint/meja A2DP lama dan kunci mapping working terakhir sebelum patch, flash, atau mengubah wiring apa pun.
+**NEXT ACTION:** tidak ada patch BT tambahan. Gunakan konfigurasi ini dalam pemakaian normal dan pantau Black Box/minimum SRAM. Fokus proyek berikutnya kembali ke antrean non-BT, terutama Minji Math v0.2 atau observasi wake/TTS interruption.
