@@ -2,9 +2,11 @@
 #define WROOM_COMPANION_H
 
 #include <atomic>
+#include <condition_variable>
 #include <cstdint>
 #include <mutex>
 #include <string>
+#include <vector>
 
 class WroomCompanion {
 public:
@@ -21,6 +23,7 @@ public:
     bool Disconnect();
     bool SetVolume(int volume);
     bool AdjustVolume(int delta);
+    std::string ScanDevices();
 
 private:
     WroomCompanion() = default;
@@ -40,9 +43,13 @@ private:
     std::atomic<int64_t> last_seen_us_{0};
     mutable std::mutex state_mutex_;
     std::mutex tx_mutex_;
+    std::mutex scan_mutex_;
+    std::condition_variable scan_cv_;
+    bool scan_complete_ = false;
+    std::string scan_error_;
+    std::vector<std::string> scan_devices_;
     std::string state_ = "UNKNOWN";
     std::string device_name_ = "Edifier";
 };
 
 #endif
-
