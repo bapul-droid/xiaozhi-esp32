@@ -1,6 +1,7 @@
 #include "wroom_companion.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <cstring>
 
@@ -129,6 +130,42 @@ bool WroomCompanion::AdjustVolume(int delta) {
     return SetVolume(volume_.load() + delta);
 }
 
+std::string WroomCompanion::ScanDevices() {
+    if (!IsAvailable()) {
+        return "Modul Bluetooth WROOM tidak terdeteksi.";
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(scan_mutex_);
+        scan_complete_ = false;
+        scan_error_.clear();
+        scan_devices_.clear();
+    }
+    if (!SendLine("BT SCAN")) {
+        return "Perintah pemindaian Bluetooth gagal dikirim.";
+    }
+
+    std::unique_lock<std::mutex> lock(scan_mutex_);
+    if (!scan_cv_.wait_for(lock, std::chrono::seconds(8), [this]() { return scan_complete_; })) {
+        return "Pemindaian Bluetooth belum selesai. Silakan coba tanyakan kembali.";
+    }
+    if (!scan_error_.empty()) {
+        return scan_error_;
+    }
+    if (scan_devices_.empty()) {
+        return "Pemindaian selesai, tetapi tidak ada perangkat Bluetooth yang terlihat.";
+    }
+
+    std::string result = "Perangkat Bluetooth yang terlihat: ";
+    for (size_t i = 0; i < scan_devices_.size(); ++i) {
+        if (i > 0) {
+            result += "; ";
+        }
+        result += std::to_string(i + 1) + ". " + scan_devices_[i];
+    }
+    return result + ".";
+}
+
 void WroomCompanion::TaskEntry(void* arg) {
     static_cast<WroomCompanion*>(arg)->Run();
     vTaskDelete(nullptr);
@@ -150,6 +187,58 @@ void WroomCompanion::HandleLine(const char* line) {
 
     available_ = true;
     last_seen_us_ = esp_timer_get_time();
+
+    if (std::strcmp(line, "BT SCAN BEGIN") == 0) {
+        std::lock_guard<std::mutex> lock(scan_mutex_);
+        scan_devices_.clear();
+        return;
+    }
+    if (std::strncmp(line, "BT DEVICE ", 10) == 0) {
+        const char* name = std::strstr(line, "NAME=\"");
+        const char* address = std::strstr(line, "ADDR=");
+        const char* rssi = std::strstr(line, "RSSI=");
+        std::string device_name = "Perangkat tanpa nama";
+        if (name != nullptr) {
+            name += 6;
+            const char* end = std::strchr(name, '"');
+            if (end != nullptr && end > name && std::strncmp(name, "Unknown", 7) != 0) {
+                device_name.assign(name, end - name);
+            }
+        }
+        char detail[128];
+        char parsed_address[18] = "unknown";
+        int parsed_rssi = -129;
+        if (address != nullptr) {
+            std::sscanf(address + 5, "%17s", parsed_address);
+        }
+        if (rssi != nullptr) {
+            std::sscanf(rssi + 5, "%d", &parsed_rssi);
+        }
+        std::snprintf(detail, sizeof(detail), "%s, sinyal %d dBm, alamat %s",
+                      device_name.c_str(), parsed_rssi, parsed_address);
+        std::lock_guard<std::mutex> lock(scan_mutex_);
+        scan_devices_.emplace_back(detail);
+        return;
+    }
+    if (std::strncmp(line, "BT SCAN END ", 12) == 0) {
+        {
+            std::lock_guard<std::mutex> lock(scan_mutex_);
+            scan_complete_ = true;
+        }
+        scan_cv_.notify_all();
+        return;
+    }
+    if (std::strncmp(line, "ERR BT SCAN ", 12) == 0) {
+        {
+            std::lock_guard<std::mutex> lock(scan_mutex_);
+            scan_error_ = std::strstr(line, "BUSY_CONNECTED")
+                ? "Speaker Bluetooth masih terhubung. Putuskan dahulu sebelum memindai perangkat sekitar."
+                : "WROOM tidak dapat memulai pemindaian Bluetooth.";
+            scan_complete_ = true;
+        }
+        scan_cv_.notify_all();
+        return;
+    }
 
     if (std::strncmp(line, "BT STATE ", 9) == 0) {
         const char* state_begin = line + 9;
