@@ -1,6 +1,6 @@
 # MINJI_PROJECT_STATE
 
-**Snapshot:** 17 Agustus 2026 — Audio Separation + BT Control CLOSED  
+**Snapshot:** 17 Agustus 2026 — Bluetooth Companion FINAL CLOSED  
 **Repository:** `bapul-droid/xiaozhi-esp32`
 
 Dokumen ini adalah state terpadu proyek Minji dari checkpoint berbagai meja. Fakta terbaru mengoreksi checkpoint lama bila terjadi konflik.
@@ -268,14 +268,17 @@ Protokol UART:
 - `BT STATUS`;
 - `BT CONNECT`;
 - `BT DISCONNECT`;
-- `BT VOLUME 0..100`.
+- `BT VOLUME 0..100`;
+- `BT SCAN`;
+- output `BT DEVICE ...` dan `BT SCAN END`.
 
 MCP Minji:
 
 - `self.bluetooth.get_status`;
 - `self.bluetooth.connect`;
 - `self.bluetooth.disconnect`;
-- `self.bluetooth.set_volume`.
+- `self.bluetooth.set_volume`;
+- `self.bluetooth.scan`.
 
 Pengujian suara yang berhasil:
 
@@ -298,7 +301,33 @@ BT EVENT CONNECTED
 
 Disconnect melalui perintah suara menonaktifkan auto-reconnect sampai perintah connect diberikan. Power-off Edifier dengan `AUTO=1` tetap memungkinkan reconnect otomatis saat Edifier hidup kembali.
 
-Discovery/pairing perangkat Bluetooth baru belum menjadi fitur. Perintah “scan perangkat sekitar” saat ini hanya menghasilkan status perangkat paired aktif.
+### Auto-reconnect dan scan — FINAL/CONFIRMED
+
+Bug lifecycle lama membuat WROOM hanya dapat tersambung kembali setelah restart ketika Edifier dimatikan lalu dinyalakan lagi. Root cause-nya adalah retry langsung ke alamat lama serta perubahan state lokal saat stack Bluetooth masih berada pada state berbeda.
+
+Perbaikan final:
+
+- kehilangan Edifier mengembalikan WROOM ke discovery berbasis heartbeat;
+- discovery tidak diulang secara rekursif dari callback GAP;
+- timeout koneksi meminta stack menutup sesi sebelum retry;
+- perintah connect memaksa discovery target baru;
+- perintah disconnect membatalkan discovery dan menetapkan `AUTO=0`;
+- hasil scan manual dideduplikasi berdasarkan MAC, maksimal 8 perangkat;
+- nama, RSSI, class-of-device, dan MAC diteruskan ke Minji melalui UART.
+
+Pengujian hardware nyata:
+
+- Edifier OFF -> `BT EVENT DISCONNECTED`;
+- WROOM -> `Reconnect discovery started: heartbeat retry`;
+- Edifier ON -> target `fc:e8:06:dd:d9:f2` ditemukan;
+- A2DP dan AVRCP kembali connected tanpa restart WROOM;
+- scan suara menemukan dan disebutkan Minji: `EDIFIER M260`, HP `baPuL_F3`, dan `Mi Box`;
+- setelah scan, perintah suara berhasil menyambungkan Edifier kembali;
+- tidak terjadi crash/reset.
+
+RSSI `-129 dBm` berarti paket hasil discovery tidak membawa RSSI valid; bukan nilai kekuatan sinyal nyata.
+
+**Batas fitur:** scan/listing perangkat sekitar sudah selesai. Memilih dan pairing target audio baru selain Edifier tetap tidak diimplementasikan karena bukan kebutuhan milestone ini.
 
 ## 12. Audio Separation — Riwayat Kegagalan dan Keputusan
 
@@ -372,6 +401,8 @@ Branch: `main`
 Commit final:
 
 - `0b2f21e` — `feat: add Bluetooth companion control and audio fallback`
+- `9e025f4` / `1114845` — koleksi dan penyajian hasil scan Bluetooth
+- `d72edf6` — expose `self.bluetooth.scan` ke Minji
 
 Commit baseline terkait:
 
@@ -396,6 +427,7 @@ Branch: `master`
 Commit final:
 
 - `6d4f809` — `feat: add UART Bluetooth companion control`
+- `cef4a7c` — `fix: recover A2DP reconnect and report Bluetooth scans`
 
 Baseline sebelumnya:
 
@@ -425,6 +457,8 @@ Commit terkait sesi ini:
 - UART G18/G3 -> WROOM 16/17 — FINAL/FROZEN.
 - WROOM status/connect/disconnect/volume — CONFIRMED.
 - Automatic internal fallback — CONFIRMED.
+- Auto-reconnect Edifier tanpa restart WROOM — FIXED/CONFIRMED.
+- Bluetooth scan dan penyebutan nama/RSSI/MAC oleh Minji — FINAL/CONFIRMED.
 - Third I2S controller approach — ABANDONED.
 - Minji Math v0.1 — ABANDONED.
 - XiaoZhi OTA — OFF.
@@ -459,9 +493,9 @@ Minji sedang TTS panjang
 
 Tetap menjadi target jangka panjang, tetapi tidak mengganggu baseline stabil sampai jalur AEC dan dukungan server dipahami.
 
-### Parked — Bluetooth Discovery/Pairing Baru
+### Parked — Pairing Target Audio Baru
 
-Saat ini WROOM mengendalikan Edifier paired yang sudah dikenal. Scan, memilih, dan pairing speaker Bluetooth baru belum diimplementasikan.
+Scan/listing perangkat sekitar sudah FINAL. Memilih dan pairing speaker Bluetooth baru selain target Edifier tetap diparkir karena tidak dibutuhkan untuk menutup milestone BT.
 
 ## 17. Aturan Kerja Project State
 
@@ -491,7 +525,8 @@ Kondisi akhir:
 - connect/disconnect/status/volume dapat dikontrol melalui suara;
 - radio/music pindah ke Edifier ketika connected;
 - media otomatis kembali ke speaker internal ketika Edifier disconnected/off;
-- reconnect mengembalikan media ke Edifier;
+- auto-reconnect menemukan dan menyambungkan kembali Edifier tanpa restart WROOM;
+- Minji dapat memindai dan menyebut perangkat Bluetooth sekitar beserta RSSI/MAC;
 - TTS/news/conversation tetap internal;
 - kedua repository firmware sudah bersih dan tersinkron dengan remote;
 - wiring final sudah dikunci.
