@@ -65,3 +65,11 @@ void AudioCodec::EnableOutput(bool enable) {
     output_enabled_ = enable;
     ESP_LOGI(TAG, "Set output enable to %s", enable ? "true" : "false");
 }
+
+bool AudioCodec::SetOutputGpio(gpio_num_t, gpio_num_t, gpio_num_t) {
+    return false;
+}
+
+bool AudioCodec::RestoreOutputGpio() {
+    return false;
+}

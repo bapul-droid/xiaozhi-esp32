@@ -7,6 +7,26 @@
 
 #define TAG "NoAudioCodec"
 
+namespace {
+
+i2s_std_gpio_config_t MakeOutputGpioConfig(gpio_num_t bclk, gpio_num_t ws,
+                                           gpio_num_t dout) {
+    return {
+        .mclk = I2S_GPIO_UNUSED,
+        .bclk = bclk,
+        .ws = ws,
+        .dout = dout,
+        .din = I2S_GPIO_UNUSED,
+        .invert_flags = {
+            .mclk_inv = false,
+            .bclk_inv = false,
+            .ws_inv = false,
+        },
+    };
+}
+
+}  // namespace
+
 NoAudioCodec::~NoAudioCodec() {
     if (rx_handle_ != nullptr) {
         ESP_ERROR_CHECK(i2s_channel_disable(rx_handle_));
@@ -20,6 +40,9 @@ NoAudioCodecDuplex::NoAudioCodecDuplex(int input_sample_rate, int output_sample_
     duplex_ = true;
     input_sample_rate_ = input_sample_rate;
     output_sample_rate_ = output_sample_rate;
+    output_bclk_ = default_output_bclk_ = bclk;
+    output_ws_ = default_output_ws_ = ws;
+    output_dout_ = default_output_dout_ = dout;
 
     i2s_chan_config_t chan_cfg = {
         .id = XIAOZHI_I2S_PORT(0),
@@ -80,6 +103,9 @@ NoAudioCodecSimplex::NoAudioCodecSimplex(int input_sample_rate, int output_sampl
     duplex_ = false;
     input_sample_rate_ = input_sample_rate;
     output_sample_rate_ = output_sample_rate;
+    output_bclk_ = default_output_bclk_ = spk_bclk;
+    output_ws_ = default_output_ws_ = spk_ws;
+    output_dout_ = default_output_dout_ = spk_dout;
 
     // Create a new channel for speaker
     i2s_chan_config_t chan_cfg = {
@@ -149,6 +175,9 @@ NoAudioCodecSimplex::NoAudioCodecSimplex(int input_sample_rate, int output_sampl
     duplex_ = false;
     input_sample_rate_ = input_sample_rate;
     output_sample_rate_ = output_sample_rate;
+    output_bclk_ = default_output_bclk_ = spk_bclk;
+    output_ws_ = default_output_ws_ = spk_ws;
+    output_dout_ = default_output_dout_ = spk_dout;
 
     // Create a new channel for speaker
     i2s_chan_config_t chan_cfg = {
@@ -281,6 +310,81 @@ void NoAudioCodec::EnableOutput(bool enable) {
     AudioCodec::EnableOutput(enable);
 }
 
+bool NoAudioCodec::SetOutputGpio(gpio_num_t bclk, gpio_num_t ws, gpio_num_t dout) {
+    std::lock_guard<std::mutex> lock(data_if_mutex_);
+    if (tx_handle_ == nullptr) {
+        return false;
+    }
+    if (output_bclk_ == bclk && output_ws_ == ws && output_dout_ == dout) {
+        return true;
+    }
+
+    const bool was_enabled = output_enabled_;
+    const gpio_num_t old_bclk = output_bclk_;
+    const gpio_num_t old_ws = output_ws_;
+    const gpio_num_t old_dout = output_dout_;
+    if (was_enabled) {
+        const esp_err_t disable_err = i2s_channel_disable(tx_handle_);
+        if (disable_err != ESP_OK) {
+            ESP_LOGE(TAG, "Unable to stop I2S TX for GPIO route: %s",
+                     esp_err_to_name(disable_err));
+            return false;
+        }
+    }
+
+    const auto new_gpio = MakeOutputGpioConfig(bclk, ws, dout);
+    esp_err_t err = i2s_channel_reconfig_std_gpio(tx_handle_, &new_gpio);
+    if (err != ESP_OK) {
+        const auto old_gpio = MakeOutputGpioConfig(old_bclk, old_ws, old_dout);
+        i2s_channel_reconfig_std_gpio(tx_handle_, &old_gpio);
+        if (was_enabled) {
+            i2s_channel_enable(tx_handle_);
+        }
+        ESP_LOGE(TAG, "Unable to re-route I2S TX GPIO: %s", esp_err_to_name(err));
+        return false;
+    }
+
+    if (was_enabled) {
+        err = i2s_channel_enable(tx_handle_);
+        if (err != ESP_OK) {
+            const auto old_gpio = MakeOutputGpioConfig(old_bclk, old_ws, old_dout);
+            i2s_channel_reconfig_std_gpio(tx_handle_, &old_gpio);
+            if (i2s_channel_enable(tx_handle_) != ESP_OK) {
+                output_enabled_ = false;
+            }
+            ESP_LOGE(TAG, "Unable to restart I2S TX after GPIO route: %s",
+                     esp_err_to_name(err));
+            return false;
+        }
+    }
+
+    output_bclk_ = bclk;
+    output_ws_ = ws;
+    output_dout_ = dout;
+
+    // IDF reconfigures the new GPIO matrix outputs, but the previous output
+    // pins can remain driven on this board. Explicitly release only the pins
+    // that are no longer part of the active route.
+    if (old_bclk != bclk && old_bclk != ws && old_bclk != dout) {
+        gpio_reset_pin(old_bclk);
+    }
+    if (old_ws != bclk && old_ws != ws && old_ws != dout) {
+        gpio_reset_pin(old_ws);
+    }
+    if (old_dout != bclk && old_dout != ws && old_dout != dout) {
+        gpio_reset_pin(old_dout);
+    }
+
+    ESP_LOGI(TAG, "I2S TX routed: BCLK=G%d WS=G%d DATA=G%d",
+             bclk, ws, dout);
+    return true;
+}
+
+bool NoAudioCodec::RestoreOutputGpio() {
+    return SetOutputGpio(default_output_bclk_, default_output_ws_,
+                         default_output_dout_);
+}
+
 // Delegating constructor: calls the main constructor with default slot mask
 NoAudioCodecSimplexPdm::NoAudioCodecSimplexPdm(int input_sample_rate, int output_sample_rate, gpio_num_t spk_bclk, gpio_num_t spk_ws, gpio_num_t spk_dout, gpio_num_t mic_sck, gpio_num_t mic_din) 
     : NoAudioCodecSimplexPdm(input_sample_rate, output_sample_rate, spk_bclk, spk_ws, spk_dout, I2S_STD_SLOT_LEFT, mic_sck, mic_din) {
@@ -291,6 +395,9 @@ NoAudioCodecSimplexPdm::NoAudioCodecSimplexPdm(int input_sample_rate, int output
     duplex_ = false;
     input_sample_rate_ = input_sample_rate;
     output_sample_rate_ = output_sample_rate;
+    output_bclk_ = default_output_bclk_ = spk_bclk;
+    output_ws_ = default_output_ws_ = spk_ws;
+    output_dout_ = default_output_dout_ = spk_dout;
 
     // Create a new channel for speaker
     i2s_chan_config_t tx_chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(XIAOZHI_I2S_PORT(1), I2S_ROLE_MASTER);

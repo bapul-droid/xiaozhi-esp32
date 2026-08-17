@@ -1,4 +1,5 @@
 #include "genius_client.h"
+#include "wroom_companion.h"
 
 #include "boards/common/board.h"
 #include "system_info.h"
@@ -271,6 +272,8 @@ void GeniusClient::RecordDiagnosticEvent(const char* event)
 
 void GeniusClient::Start()
 {
+    WroomCompanion::GetInstance().Initialize();
+
     // Jangan membuat task kedua saat Wi-Fi reconnect.
     if (task_handle_ != nullptr) {
         ESP_LOGI(TAG, "Genius Client task already running");

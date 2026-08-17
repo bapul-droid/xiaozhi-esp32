@@ -10,6 +10,12 @@
 class NoAudioCodec : public AudioCodec {
 protected:
     std::mutex data_if_mutex_;
+    gpio_num_t output_bclk_ = GPIO_NUM_NC;
+    gpio_num_t output_ws_ = GPIO_NUM_NC;
+    gpio_num_t output_dout_ = GPIO_NUM_NC;
+    gpio_num_t default_output_bclk_ = GPIO_NUM_NC;
+    gpio_num_t default_output_ws_ = GPIO_NUM_NC;
+    gpio_num_t default_output_dout_ = GPIO_NUM_NC;
 
     virtual int Write(const int16_t* data, int samples) override;
     virtual int Read(int16_t* dest, int samples) override;
@@ -18,6 +24,8 @@ protected:
 
 public:
     virtual ~NoAudioCodec();
+    virtual bool SetOutputGpio(gpio_num_t bclk, gpio_num_t ws, gpio_num_t dout) override;
+    virtual bool RestoreOutputGpio() override;
 };
 
 class NoAudioCodecDuplex : public NoAudioCodec {

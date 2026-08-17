@@ -1,4 +1,5 @@
 #include "audio_service.h"
+#include "genius_client/wroom_companion.h"
 #include <esp_log.h>
 #include <cstring>
 
@@ -31,7 +32,21 @@
 #define TAG "AudioService"
 
 
-// Genius media bridge temporarily disabled: all decoded audio uses the internal codec.
+// -----------------------------------------------------------------------------
+// MINJI AUDIO SEPARATION V2
+// The S3 only has two I2S controllers; Minji already uses both for speaker TX
+// and microphone RX. Media therefore re-routes the existing speaker TX channel
+// instead of allocating a third channel. The data format remains the proven
+// Minji/WROOM format: 24 kHz, 32-bit I2S mono-left.
+// -----------------------------------------------------------------------------
+namespace {
+
+constexpr gpio_num_t MINJI_BT_BCLK = GPIO_NUM_17;
+constexpr gpio_num_t MINJI_BT_WS   = GPIO_NUM_13;
+constexpr gpio_num_t MINJI_BT_DOUT = GPIO_NUM_14;
+
+}  // namespace
+
 
 AudioService::AudioService() {
     event_group_ = xEventGroupCreate();
@@ -331,14 +346,58 @@ void AudioService::AudioOutputTask() {
         audio_queue_cv_.notify_all();
         lock.unlock();
 
-        if (!codec_->output_enabled()) {
-            esp_timer_stop(audio_power_timer_);
-            esp_timer_start_periodic(audio_power_timer_, AUDIO_POWER_CHECK_INTERVAL_MS * 1000);
-            codec_->EnableOutput(true);
-        }
+        const bool use_bt_companion = task->genius_media &&
+            WroomCompanion::GetInstance().IsBluetoothConnected();
 
-        // Route all playback, including Genius radio/music, to Minji's internal speaker.
-        codec_->OutputData(task->pcm);
+        if (use_bt_companion) {
+            if (!companion_output_route_active_) {
+                companion_output_route_active_ = codec_->SetOutputGpio(
+                    MINJI_BT_BCLK,
+                    MINJI_BT_WS,
+                    MINJI_BT_DOUT
+                );
+                if (companion_output_route_active_) {
+                    ESP_LOGI(TAG,
+                        "BT companion route active: G17=BCLK G13=WS G14=DATA, 24k mono-left");
+                } else {
+                    ESP_LOGE(TAG,
+                        "BT companion route unavailable; blocking media from internal speaker");
+                }
+            }
+
+            if (companion_output_route_active_) {
+                if (!codec_->output_enabled()) {
+                    esp_timer_stop(audio_power_timer_);
+                    esp_timer_start_periodic(audio_power_timer_,
+                                             AUDIO_POWER_CHECK_INTERVAL_MS * 1000);
+                    codec_->EnableOutput(true);
+                }
+                codec_->OutputData(task->pcm);
+            }
+        } else {
+            if (companion_output_route_active_) {
+                if (codec_->RestoreOutputGpio()) {
+                    companion_output_route_active_ = false;
+                    if (task->genius_media) {
+                        ESP_LOGW(TAG,
+                            "Bluetooth disconnected; media fallback restored to internal speaker");
+                    } else {
+                        ESP_LOGI(TAG, "Internal speaker route restored");
+                    }
+                } else {
+                    ESP_LOGE(TAG, "Unable to restore internal speaker route");
+                }
+            }
+
+            if (!codec_->output_enabled()) {
+                esp_timer_stop(audio_power_timer_);
+                esp_timer_start_periodic(audio_power_timer_, AUDIO_POWER_CHECK_INTERVAL_MS * 1000);
+                codec_->EnableOutput(true);
+            }
+            if (!companion_output_route_active_) {
+                codec_->OutputData(task->pcm);
+            }
+        }
 
         /* Update the last output time */
         last_output_time_ = std::chrono::steady_clock::now();
@@ -362,6 +421,9 @@ void AudioService::AudioOutputTask() {
         }
     }
 
+    if (companion_output_route_active_ && codec_->RestoreOutputGpio()) {
+        companion_output_route_active_ = false;
+    }
     ESP_LOGW(TAG, "Audio output task stopped");
 }
 

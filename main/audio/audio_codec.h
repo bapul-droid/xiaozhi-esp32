@@ -33,6 +33,10 @@ public:
     virtual void SetInputGain(float gain);
     virtual void EnableInput(bool enable);
     virtual void EnableOutput(bool enable);
+    // Re-route an already configured I2S TX channel without allocating a new
+    // controller. Codecs that do not expose a GPIO-routable TX return false.
+    virtual bool SetOutputGpio(gpio_num_t bclk, gpio_num_t ws, gpio_num_t dout);
+    virtual bool RestoreOutputGpio();
 
     virtual void OutputData(std::vector<int16_t>& data);
     virtual bool InputData(std::vector<int16_t>& data);

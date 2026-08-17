@@ -5,6 +5,7 @@
 
 #include "mcp_server.h"
 #include "genius_client/genius_client.h"
+#include "genius_client/wroom_companion.h"
 #include <esp_log.h>
 #include <esp_app_desc.h>
 #include <algorithm>
@@ -171,6 +172,79 @@ void McpServer::AddUserOnlyTools() {
 
 
     // GeniusAI media control
+    AddTool(
+        "self.bluetooth.get_status",
+        "Get the current WROOM Bluetooth companion and Bluetooth speaker status. "
+        "Use this before answering questions about the external Bluetooth speaker "
+        "or before making a relative Bluetooth volume adjustment.",
+        PropertyList(),
+        [](const PropertyList&) -> ReturnValue {
+            auto& companion = WroomCompanion::GetInstance();
+            companion.RequestStatus();
+            return companion.GetStatusText();
+        }
+    );
+
+    AddTool(
+        "self.bluetooth.connect",
+        "Connect the WROOM companion to the paired Bluetooth speaker. "
+        "Use only for the external Bluetooth speaker, not Minji's internal speaker.",
+        PropertyList(),
+        [](const PropertyList&) -> ReturnValue {
+            auto& companion = WroomCompanion::GetInstance();
+            if (!companion.IsAvailable()) {
+                companion.RequestStatus();
+                return std::string("Modul Bluetooth WROOM belum terdeteksi.");
+            }
+            if (companion.IsBluetoothConnected()) {
+                return std::string("Speaker Bluetooth sudah terhubung.");
+            }
+            if (!companion.Connect()) {
+                return std::string("Perintah sambungkan Bluetooth gagal dikirim.");
+            }
+            return std::string("Sedang menyambungkan speaker Bluetooth.");
+        }
+    );
+
+    AddTool(
+        "self.bluetooth.disconnect",
+        "Disconnect the paired external Bluetooth speaker from the WROOM companion. "
+        "After disconnecting, radio and music automatically use Minji's internal speaker.",
+        PropertyList(),
+        [](const PropertyList&) -> ReturnValue {
+            auto& companion = WroomCompanion::GetInstance();
+            if (!companion.IsAvailable()) {
+                return std::string("Modul Bluetooth WROOM belum terdeteksi.");
+            }
+            if (!companion.Disconnect()) {
+                return std::string("Perintah putuskan Bluetooth gagal dikirim.");
+            }
+            return std::string("Speaker Bluetooth sedang diputuskan. Media akan memakai speaker internal Minji.");
+        }
+    );
+
+    AddTool(
+        "self.bluetooth.set_volume",
+        "Set the external Bluetooth speaker volume from 0 to 100. "
+        "Use this only when the user explicitly mentions Bluetooth, Edifier, or the external speaker. "
+        "For relative requests, call self.bluetooth.get_status first and calculate the new value.",
+        PropertyList({
+            Property("volume", kPropertyTypeInteger, 0, 100)
+        }),
+        [](const PropertyList& properties) -> ReturnValue {
+            int volume = properties["volume"].value<int>();
+            auto& companion = WroomCompanion::GetInstance();
+            if (!companion.IsAvailable()) {
+                return std::string("Modul Bluetooth WROOM belum terdeteksi.");
+            }
+            if (!companion.SetVolume(volume)) {
+                return std::string("Perintah volume Bluetooth gagal dikirim.");
+            }
+            return std::string("Volume speaker Bluetooth diatur ke ") +
+                std::to_string(volume) + " persen.";
+        }
+    );
+
     AddTool(
         "self.media.play_local",
         "Play a local song on this device. "
