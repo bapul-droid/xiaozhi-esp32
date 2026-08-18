@@ -532,3 +532,69 @@ Kondisi akhir:
 - wiring final sudah dikunci.
 
 **NEXT ACTION:** tidak ada patch BT tambahan. Gunakan konfigurasi ini dalam pemakaian normal dan pantau Black Box/minimum SRAM. Fokus proyek berikutnya kembali ke antrean non-BT, terutama Minji Math v0.2 atau observasi wake/TTS interruption.
+
+## Smart Home BARDI / Tuya — FINAL / CONFIRMED (2026-08-18)
+
+### CONFIRMED
+- BARDI Wall Switch EU 3 Gang berhasil diintegrasikan ke ekosistem Minji.
+- Perangkat menggunakan akun Smart Life / Tuya Cloud.
+- Tuya Cloud Project yang cocok untuk akun Smart Life ini berada di Western America Data Center.
+- Smart Life account berhasil dilink ke Tuya Developer Project.
+- Tiga channel perangkat terdeteksi dan dapat dikontrol independen:
+  - switch_1 = Teras
+  - switch_2 = Ruang Tamu
+  - switch_3 = Ruang TV
+- Tuya Developer Web -> physical BARDI switch: CONFIRMED.
+- Genius Debian -> Tuya API READ status: CONFIRMED.
+- Genius Debian -> Tuya API WRITE ON/OFF: CONFIRMED.
+- Genius Web Console -> BARDI status + ON/OFF: CONFIRMED.
+- XiaoZhi voice -> MCP tool -> Genius -> Tuya -> BARDI: FINAL / CONFIRMED.
+- Voice test confirmed:
+  "Nyalakan ruang TV"
+  -> self.smarthome.set_light
+  -> GeniusClient SetBardiSwitch(room=ruang_tv, gang=3, state=ON)
+  -> POST /api/home/bardi/switch
+  -> Tuya success=true
+  -> physical light ON
+  -> Minji response: "Lampu ruang TV sudah dinyalakan."
+
+### Architecture
+User voice
+-> XiaoZhi / LLM
+-> self.smarthome.set_light
+-> GeniusClient
+-> Genius Debian /api/home/bardi/switch
+-> Tuya Cloud
+-> BARDI Wall Switch
+-> physical light
+
+### Security / Design Decision
+- Tuya Access ID / Access Secret are NOT stored in Minji firmware.
+- Tuya credentials stay on Genius Debian only.
+- Firmware only knows the Genius local API.
+- This keeps cloud credentials out of the ESP32 and allows the backend smart-home provider to be changed later without redesigning Minji firmware.
+
+### Genius Console
+SMART HOME — BARDI panel added with:
+- Teras ON/OFF
+- Ruang Tamu ON/OFF
+- Ruang TV ON/OFF
+- live status refresh
+
+### Files
+Firmware:
+- main/genius_client/genius_client.h
+- main/genius_client/genius_client.cc
+- main/mcp_server.cc
+
+Genius Server:
+- server/genius/integrations/bardi_tuya.py
+- server/genius/api/home_bardi.py
+- server/genius/main.py
+- server/genius/api/console.py
+
+### Notes
+- Official Smart Life control depends on Tuya Cloud / internet.
+- Local-LAN BARDI control was not required for this milestone.
+- Smart-home integration does not require adopting a full Home Assistant-style platform.
+- Genius exposes a small purpose-built smart-home adapter instead.

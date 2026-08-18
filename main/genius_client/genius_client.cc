@@ -1229,6 +1229,89 @@ bool GeniusClient::SearchKnowledge(
 
     return true;
 }
+bool GeniusClient::SetBardiSwitch(
+    const std::string& room,
+    bool state
+)
+{
+    int gang = 0;
+
+    if (room == "teras") {
+        gang = 1;
+    } else if (
+        room == "ruang_tamu" ||
+        room == "ruang tamu"
+    ) {
+        gang = 2;
+    } else if (
+        room == "ruang_tv" ||
+        room == "ruang tv" ||
+        room == "tv"
+    ) {
+        gang = 3;
+    } else {
+        ESP_LOGW(
+            TAG,
+            "Unknown Bardi room: %s",
+            room.c_str()
+        );
+        return false;
+    }
+
+    cJSON* root = cJSON_CreateObject();
+
+    if (root == nullptr) {
+        ESP_LOGE(TAG, "Failed to create Bardi JSON");
+        return false;
+    }
+
+    cJSON_AddNumberToObject(root, "gang", gang);
+    cJSON_AddBoolToObject(root, "state", state);
+
+    char* json_text = cJSON_PrintUnformatted(root);
+
+    if (json_text == nullptr) {
+        cJSON_Delete(root);
+        ESP_LOGE(TAG, "Failed to serialize Bardi JSON");
+        return false;
+    }
+
+    ESP_LOGI(
+        TAG,
+        "Bardi request: room=%s gang=%d state=%s",
+        room.c_str(),
+        gang,
+        state ? "ON" : "OFF"
+    );
+
+    const bool success = PostJson(
+        "/api/home/bardi/switch",
+        json_text
+    );
+
+    cJSON_free(json_text);
+    cJSON_Delete(root);
+
+    if (!success) {
+        ESP_LOGE(
+            TAG,
+            "Bardi command failed: room=%s gang=%d",
+            room.c_str(),
+            gang
+        );
+        return false;
+    }
+
+    ESP_LOGI(
+        TAG,
+        "Bardi command sent: room=%s gang=%d state=%s",
+        room.c_str(),
+        gang,
+        state ? "ON" : "OFF"
+    );
+
+    return true;
+}
 bool GeniusClient::PlayOnlineMusic(
     const std::string& query
 )

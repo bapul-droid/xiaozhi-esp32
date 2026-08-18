@@ -284,7 +284,86 @@ void McpServer::AddUserOnlyTools() {
             return true;
         }
     );
+    AddTool(
+        "self.smarthome.set_light",
+        "Turn a Bardi smart-home light on or off through the Genius server. "
+        "Use this tool whenever the user asks to turn on, turn off, nyalakan, "
+        "hidupkan, or matikan the Teras, Ruang Tamu, or Ruang TV light. "
+        "room MUST be one of: teras, ruang_tamu, ruang_tv. "
+        "state MUST be on or off.",
+        PropertyList({
+            Property(
+                "room",
+                kPropertyTypeString,
+                "Target room. Allowed values: teras, ruang_tamu, ruang_tv."
+            ),
+            Property(
+                "state",
+                kPropertyTypeString,
+                "Desired state. Allowed values: on or off."
+            )
+        }),
+        [](const PropertyList& properties) -> ReturnValue {
+            std::string room =
+                properties["room"].value<std::string>();
 
+            std::string state =
+                properties["state"].value<std::string>();
+
+            bool turn_on = false;
+
+            if (
+                state == "on" ||
+                state == "ON" ||
+                state == "nyala" ||
+                state == "hidup"
+            ) {
+                turn_on = true;
+            } else if (
+                state == "off" ||
+                state == "OFF" ||
+                state == "mati"
+            ) {
+                turn_on = false;
+            } else {
+                return std::string(
+                    "Status lampu tidak dikenali. Gunakan on atau off."
+                );
+            }
+
+            auto& genius =
+                GeniusClient::GetInstance();
+
+            if (!genius.IsServerAvailable()) {
+                return std::string(
+                    "Maaf, server Genius sedang offline sehingga lampu belum bisa dikendalikan."
+                );
+            }
+
+            if (!genius.SetBardiSwitch(
+                    room,
+                    turn_on
+                )) {
+                return std::string(
+                    "Maaf, lampunya belum berhasil dikendalikan."
+                );
+            }
+
+            std::string room_name = room;
+
+            if (room == "ruang_tamu") {
+                room_name = "ruang tamu";
+            } else if (room == "ruang_tv") {
+                room_name = "ruang TV";
+            }
+
+            return std::string("Lampu ") +
+                room_name +
+                (turn_on
+                    ? " sudah dinyalakan."
+                    : " sudah dimatikan.");
+        }
+    );
     AddTool(
         "self.news.get_latest",
         "Get current Indonesian news from the device's Genius news service. "

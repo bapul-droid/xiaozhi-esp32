@@ -48,7 +48,10 @@ bool SearchKnowledge(
     int limit,
     std::string& result
 );
-
+bool SetBardiSwitch(
+    const std::string& room,
+    bool state
+);
 bool IsServerAvailable();
 private:
     GeniusClient() = default;
