@@ -43,6 +43,9 @@ bool GetNewsBulletin(
     int limit,
     std::string& bulletin
 );
+bool GetBatteryStatus(
+    std::string& result
+);
 bool SearchKnowledge(
     const std::string& query,
     int limit,

@@ -1008,7 +1008,101 @@ bool GeniusClient::IsAudioPlaying() const
 {
     return audio_task_handle_ != nullptr;
 }
+bool GeniusClient::GetBatteryStatus(
+    std::string& result
+)
+{
+    std::string response_body;
 
+    if (!GetJson(
+            "/api/debug/battery",
+            response_body
+        )) {
+        ESP_LOGE(TAG, "Failed to get battery status");
+        return false;
+    }
+
+    cJSON* root = cJSON_Parse(response_body.c_str());
+
+    if (root == nullptr) {
+        ESP_LOGE(TAG, "Failed to parse battery JSON");
+        return false;
+    }
+
+    cJSON* status =
+        cJSON_GetObjectItem(root, "status");
+
+    cJSON* battery =
+        cJSON_GetObjectItem(root, "battery");
+
+    cJSON* charging =
+        cJSON_GetObjectItem(root, "charging");
+
+    if (
+        !cJSON_IsString(status) ||
+        std::string(status->valuestring) != "ok" ||
+        !cJSON_IsObject(battery)
+    ) {
+        cJSON_Delete(root);
+        ESP_LOGW(TAG, "Battery telemetry not ready");
+        return false;
+    }
+
+    cJSON* percent =
+        cJSON_GetObjectItem(battery, "percent");
+
+    cJSON* voltage =
+        cJSON_GetObjectItem(battery, "voltage");
+
+    cJSON* charging_active =
+        charging
+            ? cJSON_GetObjectItem(charging, "active")
+            : nullptr;
+
+    std::string text = "Baterai saya";
+
+    if (cJSON_IsNumber(percent)) {
+        text += " " +
+            std::to_string(percent->valueint) +
+            " persen";
+    }
+
+    if (cJSON_IsNumber(voltage)) {
+        char voltage_text[32];
+
+        snprintf(
+            voltage_text,
+            sizeof(voltage_text),
+            "%.2f volt",
+            voltage->valuedouble
+        );
+
+        text += ", sekitar ";
+        text += voltage_text;
+    }
+
+    if (cJSON_IsBool(charging_active)) {
+        if (cJSON_IsTrue(charging_active)) {
+            text += ", dan sedang diisi daya.";
+        } else {
+            text += ", dan tidak sedang diisi daya.";
+        }
+    } else {
+        text += ".";
+    }
+
+    cJSON_Delete(root);
+
+    result = text;
+
+    ESP_LOGI(
+        TAG,
+        "Battery status: %s",
+        result.c_str()
+    );
+
+    return true;
+}
 bool GeniusClient::GetNewsBulletin(
     const std::string& category,
     int limit,

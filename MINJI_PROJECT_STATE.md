@@ -645,3 +645,55 @@ Independent multimeter comparison:
 - Battery percentage is an estimate derived from battery voltage and is expected to move with charging/load voltage behavior.
 - Battery voltage is calibrated specifically against measurements from this Minji unit.
 - Charging detection has been physically confirmed in both charger-connected and charger-disconnected states.
+
+## Battery Self-Awareness via MCP — FINAL / CONFIRMED (2026-08-18)
+
+### FINAL / CONFIRMED
+Minji sekarang dapat membaca dan menjelaskan status baterainya sendiri melalui voice interaction.
+
+MCP tool:
+- `self.battery.get_status`
+
+Data source:
+- Genius Server `/api/debug/battery`
+- GPIO11 = battery voltage sensing
+- GPIO12 = charging-state sensing (active LOW)
+
+Flow confirmed:
+
+User voice
+-> XiaoZhi
+-> `self.battery.get_status`
+-> GeniusClient::GetBatteryStatus()
+-> Genius Server battery telemetry
+-> MCP result
+-> spoken response by Minji
+
+### Physical / Voice Validation
+
+Test command:
+- "Berapa baterai kamu sekarang?"
+
+Observed result:
+- MCP tool selected correctly: `self.battery.get_status`
+- Genius telemetry read successfully.
+- Battery: 90%
+- Voltage: approximately 4.10 V
+- Charging: YES
+- Minji responded verbally:
+  "Baterai saya 90 persen, sekitar 4.10 volt, dan sedang diisi daya."
+
+### Decision
+Battery information must always come from live Genius telemetry.
+Minji/XiaoZhi must not guess battery percentage, voltage, or charging state.
+
+### Status
+- Battery voltage sensing: FINAL
+- Battery percentage estimation: FINAL
+- Charging detection: FINAL
+- Genius battery API: FINAL
+- MCP battery status tool: FINAL
+- Natural-language battery query: FINAL
+- Spoken battery response: FINAL
+
+Battery telemetry and Minji battery self-awareness milestone CLOSED.

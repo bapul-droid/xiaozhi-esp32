@@ -136,7 +136,33 @@ void McpServer::AddUserOnlyTools() {
             auto& board = Board::GetInstance();
             return board.GetSystemInfoJson();
         });
+    AddTool(
+        "self.battery.get_status",
+        "Get Minji's own current battery percentage, voltage, and charging status. "
+        "Use this tool whenever the user asks about Minji's battery, remaining battery, "
+        "battery percentage, voltage, whether Minji is charging, or whether the charger is connected.",
+        PropertyList(),
+        [](const PropertyList&) -> ReturnValue {
+            auto& genius =
+                GeniusClient::GetInstance();
 
+            if (!genius.IsServerAvailable()) {
+                return std::string(
+                    "Maaf, saya belum bisa membaca status baterai saya karena server Genius sedang offline."
+                );
+            }
+
+            std::string result;
+
+            if (!genius.GetBatteryStatus(result)) {
+                return std::string(
+                    "Maaf, status baterai saya belum berhasil dibaca."
+                );
+            }
+
+            return result;
+        }
+    );
     AddUserOnlyTool("self.reboot", "Reboot the system",
         PropertyList(),
         [this](const PropertyList& properties) -> ReturnValue {
