@@ -598,3 +598,50 @@ Genius Server:
 - Local-LAN BARDI control was not required for this milestone.
 - Smart-home integration does not require adopting a full Home Assistant-style platform.
 - Genius exposes a small purpose-built smart-home adapter instead.
+
+## Battery & Power Telemetry — FINAL / CONFIRMED (2026-08-18)
+
+### FINAL / CONFIRMED
+- GPIO11 = battery voltage sensing.
+- GPIO12 = charging-state sensing, active LOW.
+- Battery voltage calibration finalized using physical multimeter measurements.
+- Genius Server uses piecewise calibration from real Minji hardware measurements.
+- Battery percentage estimation is enabled using the calibrated voltage.
+- Genius Console now displays:
+  - Battery Level (%)
+  - Battery Voltage
+  - Charging YES / NO
+  - ADC GPIO11 raw/mV
+  - CHRG GPIO12 raw/mV
+  - Telemetry age
+
+### Physical Validation
+Charging:
+- Battery Level: 47%
+- Voltage: 3.782 V
+- GPIO11: 2825 mV (raw 3469)
+- GPIO12: 11 mV (raw 15)
+- Charging: YES / CHARGING
+
+Charger disconnected:
+- Battery Level: 33%
+- Voltage: 3.684 V
+- GPIO11: 2750 mV (raw 3351)
+- GPIO12: 1598 mV (raw 1886)
+- Charging: NO
+
+Independent multimeter comparison:
+- Multimeter: approximately 3.74 V
+- Genius telemetry observed: approximately 3.713 V
+- Difference approximately 27 mV (~0.7%)
+
+### Locked Hardware Interpretation
+- GPIO11 = BAT_ADC
+- GPIO12 = CHRG
+- GPIO12 LOW (~10–20 mV observed) = CHARGING
+- GPIO12 HIGH (~1.6 V observed) = NOT CHARGING
+
+### Notes
+- Battery percentage is an estimate derived from battery voltage and is expected to move with charging/load voltage behavior.
+- Battery voltage is calibrated specifically against measurements from this Minji unit.
+- Charging detection has been physically confirmed in both charger-connected and charger-disconnected states.
