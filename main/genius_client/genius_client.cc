@@ -1023,7 +1023,7 @@ void GeniusClient::HandleCommand(
             "Unsupported command: %s",
             action_text
         );
-    }   
+    }
 cJSON_Delete(root);
 }
 

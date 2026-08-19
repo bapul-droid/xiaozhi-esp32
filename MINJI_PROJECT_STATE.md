@@ -697,3 +697,84 @@ Minji/XiaoZhi must not guess battery percentage, voltage, or charging state.
 - Spoken battery response: FINAL
 
 Battery telemetry and Minji battery self-awareness milestone CLOSED.
+
+## Power Management V1 — FINAL / CONFIRMED (2026-08-19)
+
+### FINAL / CONFIRMED
+Minji sekarang memiliki battery warning otomatis berbasis telemetry Genius Server.
+
+Threshold:
+- Battery <= 20% dan NOT CHARGING -> LOW warning sekali.
+- Battery <= 10% dan NOT CHARGING -> CRITICAL warning sekali.
+- CRITICAL memiliki prioritas lebih tinggi daripada LOW.
+
+Charging behavior:
+- GPIO12 active LOW tetap menjadi sumber status charging.
+- Begitu CHARGING terdeteksi, LOW dan CRITICAL warning latch langsung di-reset.
+- Reset tidak menunggu battery percentage naik.
+- Selama charging aktif, LOW/CRITICAL warning tidak dikirim.
+- Jika charger dicabut ketika battery masih berada di bawah threshold, kondisi dievaluasi kembali dan warning boleh aktif kembali.
+
+Anti-spam:
+- Warning pada level yang sama hanya dikirim sekali per cycle.
+- Repeated battery telemetry pada kondisi yang sama tidak menyebabkan warning berulang.
+
+Notification path:
+Genius battery telemetry
+-> PowerManager
+-> Genius command_queue
+-> action `notify`
+-> GeniusClient::HandleCommand()
+-> Application::Alert()
+-> LCD status / emotion Minji
+
+Levels:
+- battery_low -> status `BATERAI RENDAH`, emotion `sad`
+- battery_critical -> status `BATERAI KRITIS`, emotion `cancel`
+- battery_full path sudah disiapkan di firmware, tetapi full/termination notification otomatis belum diaktifkan.
+
+### Validation
+Simulated LOW:
+- 19%
+- not charging
+- `[POWER] ... LOW 19% warning queued`
+- Minji displayed BATERAI RENDAH.
+
+Simulated CRITICAL:
+- 9%
+- not charging
+- `[POWER] ... CRITICAL 9% warning queued`
+- Minji displayed BATERAI KRITIS.
+
+Charging reset:
+- real GPIO12 returned to approximately 10–12 mV
+- charging=True
+- `[POWER] ... charging detected, battery warning latches reset`
+
+Real telemetry resumed after simulation and replaced test data correctly.
+
+### Current Power Management Scope
+Included:
+- LOW warning
+- CRITICAL warning
+- charging suppression
+- immediate charging reset
+- anti-spam latch
+
+Not included:
+- automatic shutdown
+- software-controlled charger cutoff
+- automatic full-battery notification
+- aggressive display/power reduction based on battery level
+
+### Superseded Battery Notes
+Older PROJECT_STATE notes stating that battery percentage was not pursued or that GPIO12 was not yet a precise charging indicator are superseded by the FINAL battery telemetry validation from 2026-08-18 and Power Management V1 validation from 2026-08-19.
+
+### Commits
+Firmware:
+- `d2aebf2` — `feat: add local battery warning notifications`
+
+Genius Server:
+- `367cf95` — `feat: add Minji battery power management warnings`
+
+Power Management V1 milestone CLOSED.
