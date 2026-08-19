@@ -929,21 +929,65 @@ void GeniusClient::HandleCommand(
         action_text
     );
 
-    if (strcmp(action_text, "notify") == 0) {
+         if (strcmp(action_text, "notify") == 0) {
         cJSON* message = payload
             ? cJSON_GetObjectItem(payload, "message")
             : nullptr;
 
-        if (cJSON_IsString(message)) {
-            ESP_LOGI(
-                TAG,
-                "Notification: %s",
-                message->valuestring
-            );
-        } else {
+        cJSON* level = payload
+            ? cJSON_GetObjectItem(payload, "level")
+            : nullptr;
+
+        if (!cJSON_IsString(message)) {
             ESP_LOGW(
                 TAG,
                 "Notify command has no message"
+            );
+        } else {
+            const char* level_text =
+                cJSON_IsString(level)
+                    ? level->valuestring
+                    : "info";
+
+            ESP_LOGI(
+                TAG,
+                "Notification [%s]: %s",
+                level_text,
+                message->valuestring
+            );
+
+            const char* status = "MINJI";
+            const char* emotion = "neutral";
+
+            if (strcmp(level_text, "battery_low") == 0) {
+                status = "BATERAI RENDAH";
+                emotion = "sad";
+            } else if (
+                strcmp(level_text, "battery_critical") == 0
+            ) {
+                status = "BATERAI KRITIS";
+                emotion = "cancel";
+            } else if (
+                strcmp(level_text, "battery_full") == 0
+            ) {
+                status = "BATERAI PENUH";
+                emotion = "happy";
+            }
+
+            auto& app = Application::GetInstance();
+
+            app.Schedule(
+                [&app,
+                 status_text = std::string(status),
+                 message_text = std::string(message->valuestring),
+                 emotion_text = std::string(emotion)]() {
+
+                    app.Alert(
+                        status_text.c_str(),
+                        message_text.c_str(),
+                        emotion_text.c_str()
+                    );
+                }
             );
         }
 
@@ -968,7 +1012,10 @@ void GeniusClient::HandleCommand(
     ) {
         StopAudio();
 
-        ESP_LOGI(TAG, "Audio stop requested");
+        ESP_LOGI(
+            TAG,
+            "Audio stop requested"
+        );
 
     } else {
         ESP_LOGW(
@@ -976,13 +1023,9 @@ void GeniusClient::HandleCommand(
             "Unsupported command: %s",
             action_text
         );
-    }
-
-    cJSON_Delete(root);
+    }   
+cJSON_Delete(root);
 }
-
-
-
 
 void GeniusClient::StopAudio()
 {
