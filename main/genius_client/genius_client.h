@@ -77,6 +77,7 @@ private:
     bool SendHeartbeat();
     bool SendBatteryTelemetry();
     bool SendBootCrashReport();
+    bool SendRemoteDeviceLogs();
     bool FetchNextCommand();
     bool GetJson(
         const std::string& endpoint,

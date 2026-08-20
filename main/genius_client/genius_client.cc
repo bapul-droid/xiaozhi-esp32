@@ -1,5 +1,6 @@
 #include "genius_client.h"
 #include "wroom_companion.h"
+#include "remote_device_log.h"
 
 #include "boards/common/board.h"
 #include "system_info.h"
@@ -35,6 +36,7 @@ constexpr const char* GENIUS_SERVER_URL =
 constexpr uint32_t REGISTER_RETRY_MS = 10000;
 constexpr uint32_t HEARTBEAT_INTERVAL_MS = 30000;
 constexpr uint32_t COMMAND_POLL_INTERVAL_MS = 2000;
+constexpr uint32_t REMOTE_LOG_FLUSH_INTERVAL_MS = 5000;
 
 constexpr uint32_t DIAG_MAGIC = 0x4D494E4A;  // "MINJ"
 
@@ -313,6 +315,9 @@ void GeniusClient::TaskEntry(void* arg)
 void GeniusClient::Run()
 {
     TickType_t last_heartbeat_tick = 0;
+    TickType_t last_remote_log_tick = 0;
+
+    RemoteDeviceLog::GetInstance().Start();
 
     while (true) {
         if (!registered_) {
@@ -358,6 +363,14 @@ void GeniusClient::Run()
             }
 
             last_heartbeat_tick = now;
+        }
+
+        if (
+            last_remote_log_tick == 0 ||
+            now - last_remote_log_tick >= pdMS_TO_TICKS(REMOTE_LOG_FLUSH_INTERVAL_MS)
+        ) {
+            SendRemoteDeviceLogs();
+            last_remote_log_tick = now;
         }
 
         // Keep polling device commands while media is playing so
@@ -705,6 +718,23 @@ bool GeniusClient::SendBatteryTelemetry()
         "/api/debug/adc",
         json_body
     );
+}
+
+bool GeniusClient::SendRemoteDeviceLogs()
+{
+    auto& remote_log = RemoteDeviceLog::GetInstance();
+    std::string json_body;
+
+    if (!remote_log.BuildBatchJson(BuildDeviceId(), json_body, 40)) {
+        return true;  // Tidak ada log yang menunggu.
+    }
+
+    // Jangan masukkan log HTTP pengiriman log ke batch berikutnya.
+    remote_log.SetSuppressed(true);
+    const bool success = PostJson("/api/device-log", json_body);
+    remote_log.SetSuppressed(false);
+
+    return success;
 }
 
 bool GeniusClient::PostJson(
