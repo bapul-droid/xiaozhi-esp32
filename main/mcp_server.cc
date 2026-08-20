@@ -310,9 +310,42 @@ void McpServer::AddUserOnlyTools() {
             return true;
         }
     );
+	         AddTool(
+        "self.smarthome.get_status",
+        "Read the current status of all Bardi smart-home lights without changing them. "
+        "Use this tool whenever the user asks which lights are on or off, "
+        "which switches are active, current lamp status, status lampu, "
+        "lampu mana yang menyala, or whether Teras, Ruang Tamu, or Ruang TV is currently on. "
+        "IMPORTANT: This is a read-only status query. "
+        "Never use self.smarthome.set_light merely to check a lamp's state.",
+        PropertyList(),
+        [](const PropertyList&) -> ReturnValue {
+            auto& genius = GeniusClient::GetInstance();
+
+            if (!genius.IsServerAvailable()) {
+                return std::string(
+                    "Maaf, server Genius sedang offline sehingga status lampu belum bisa diperiksa."
+                );
+            }
+
+            std::string result;
+
+            if (!genius.GetBardiStatus(result)) {
+                return std::string(
+                    "Maaf, status lampu belum berhasil diperiksa."
+                );
+            }
+
+            return result;
+        }
+    );
+
     AddTool(
         "self.smarthome.set_light",
         "Turn a Bardi smart-home light on or off through the Genius server. "
+        "Use this tool ONLY when the user explicitly wants to CHANGE a light state. "
+        "Do NOT use this tool to check, inspect, read, or ask about the current state. "
+        "For status questions use self.smarthome.get_status instead. "
         "Use this tool whenever the user asks to turn on, turn off, nyalakan, "
         "hidupkan, or matikan the Teras, Ruang Tamu, or Ruang TV light. "
         "room MUST be one of: teras, ruang_tamu, ruang_tv. "
@@ -357,8 +390,7 @@ void McpServer::AddUserOnlyTools() {
                 );
             }
 
-            auto& genius =
-                GeniusClient::GetInstance();
+            auto& genius = GeniusClient::GetInstance();
 
             if (!genius.IsServerAvailable()) {
                 return std::string(
@@ -366,10 +398,7 @@ void McpServer::AddUserOnlyTools() {
                 );
             }
 
-            if (!genius.SetBardiSwitch(
-                    room,
-                    turn_on
-                )) {
+            if (!genius.SetBardiSwitch(room, turn_on)) {
                 return std::string(
                     "Maaf, lampunya belum berhasil dikendalikan."
                 );
@@ -390,6 +419,7 @@ void McpServer::AddUserOnlyTools() {
                     : " sudah dimatikan.");
         }
     );
+
     AddTool(
         "self.news.get_latest",
         "Get current Indonesian news from the device's Genius news service. "

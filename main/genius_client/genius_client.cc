@@ -1366,6 +1366,100 @@ bool GeniusClient::SearchKnowledge(
 
     return true;
 }
+
+bool GeniusClient::GetBardiStatus(
+    std::string& result
+)
+{
+    std::string response_body;
+
+    ESP_LOGI(TAG, "Bardi status requested");
+
+    if (!GetJson(
+            "/api/home/bardi/status",
+            response_body
+        )) {
+        ESP_LOGE(TAG, "Failed to get Bardi status");
+        return false;
+    }
+
+    cJSON* root =
+        cJSON_Parse(response_body.c_str());
+
+    if (root == nullptr) {
+        ESP_LOGE(TAG, "Invalid Bardi status JSON");
+        return false;
+    }
+
+    cJSON* status =
+        cJSON_GetObjectItem(root, "status");
+
+    cJSON* switches =
+        cJSON_GetObjectItem(root, "switches");
+
+    if (
+        !cJSON_IsString(status) ||
+        strcmp(status->valuestring, "ok") != 0 ||
+        !cJSON_IsArray(switches)
+    ) {
+        ESP_LOGE(TAG, "Invalid Bardi status response");
+        cJSON_Delete(root);
+        return false;
+    }
+
+    std::string text =
+        "Status lampu saat ini: ";
+
+    bool first = true;
+
+    cJSON* item = nullptr;
+
+    cJSON_ArrayForEach(item, switches) {
+        cJSON* name =
+            cJSON_GetObjectItem(item, "name");
+
+        cJSON* state =
+            cJSON_GetObjectItem(item, "state");
+
+        if (
+            !cJSON_IsString(name) ||
+            !cJSON_IsBool(state)
+        ) {
+            continue;
+        }
+
+        if (!first) {
+            text += ", ";
+        }
+
+        text += name->valuestring;
+        text += cJSON_IsTrue(state)
+            ? " menyala"
+            : " mati";
+
+        first = false;
+    }
+
+    cJSON_Delete(root);
+
+    if (first) {
+        ESP_LOGW(TAG, "Bardi status has no switches");
+        return false;
+    }
+
+    text += ".";
+
+    result = text;
+
+    ESP_LOGI(
+        TAG,
+        "Bardi status: %s",
+        result.c_str()
+    );
+
+    return true;
+}
+
 bool GeniusClient::SetBardiSwitch(
     const std::string& room,
     bool state
