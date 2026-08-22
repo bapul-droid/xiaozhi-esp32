@@ -9,6 +9,7 @@
 #include <esp_app_desc.h>
 #include <esp_log.h>
 #include <esp_system.h>
+#include <esp_wifi.h>
 #include <esp_heap_caps.h>
 #include <esp_attr.h>
 #include <esp_adc/adc_oneshot.h>
@@ -569,6 +570,16 @@ bool GeniusClient::SendHeartbeat()
         volume
     );
 
+    // Kualitas sinyal Wi-Fi Minji terhadap access point saat ini.
+    wifi_ap_record_t ap_info{};
+    if (esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK) {
+        cJSON_AddNumberToObject(
+            root,
+            "wifi_rssi",
+            ap_info.rssi
+        );
+    }
+
     char* json_text =
         cJSON_PrintUnformatted(root);
 
@@ -725,7 +736,7 @@ bool GeniusClient::SendRemoteDeviceLogs()
     auto& remote_log = RemoteDeviceLog::GetInstance();
     std::string json_body;
 
-    if (!remote_log.BuildBatchJson(BuildDeviceId(), json_body, 40)) {
+    if (!remote_log.BuildBatchJson(BuildDeviceId(), json_body, 8)) {
         return true;  // Tidak ada log yang menunggu.
     }
 

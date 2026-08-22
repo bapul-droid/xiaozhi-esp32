@@ -34,8 +34,8 @@ private:
     struct Entry {
         uint32_t uptime_ms;
         char level[2];
-        char tag[32];
-        char message[192];
+        char tag[24];
+        char message[128];
     };
 
     static int LogVprintf(const char* format, va_list args);

@@ -11,7 +11,7 @@
 #include <cstring>
 
 namespace {
-constexpr size_t REMOTE_LOG_QUEUE_LENGTH = 256;
+constexpr size_t REMOTE_LOG_QUEUE_LENGTH = 32;
 vprintf_like_t g_previous_vprintf = nullptr;
 
 void CopyText(char* dst, size_t dst_size, const char* src)

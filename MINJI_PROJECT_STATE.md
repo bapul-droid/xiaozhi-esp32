@@ -778,3 +778,165 @@ Genius Server:
 - `367cf95` — `feat: add Minji battery power management warnings`
 
 Power Management V1 milestone CLOSED.
+
+---
+
+## CHECKPOINT 2026-08-22 ? LOCAL OTA / ALARM / VOICE
+
+### CONFIRMED
+
+- Local OTA melalui Genius Server berhasil penuh.
+- Firmware Minji memakai OTA endpoint lokal:
+  `http://192.168.1.89:8000/xiaozhi/ota/`
+- Genius OTA response kompatibel dengan alur XiaoZhi dan berhasil menawarkan firmware lokal.
+- Firmware 2.4.5 berhasil didownload, ditulis ke OTA partition, reboot, lalu tervalidasi.
+- 2.4.5 confirmed dengan log:
+  - `Current is the latest version`
+  - `Running partition: ota_1`
+  - `Marking firmware as valid`
+- OTA firmware kini dapat dilakukan tanpa USB.
+- Firmware 2.4.5 membawa wake/listening guard:
+  `Wake word received while already listening; keeping current session`
+- Remote Device Log console pada Genius Debian berhasil direstore.
+- Alarm backend berhasil direstore:
+  - `/api/alarms`
+  - `AlarmRegistry`
+  - SQLite pada Genius Server
+- Data alarm lama tetap tersimpan di `genius.db`.
+- Alarm Web Console kembali tampil.
+- Alarm lama `Tes alarm Minji` terbaca sebagai `MISSED` pada UI.
+- Humanity Battery Meter tetap dipertahankan.
+- Genius Server tetap menjadi source of truth untuk state/history Minji; ESP32 tidak digunakan sebagai penyimpanan permanen untuk alarm/history.
+
+### UNDER INVESTIGATION
+
+- Setelah firmware 2.4.5 masuk melalui OTA, Minji tetap dapat:
+  - mendeteksi wake word,
+  - membuka WebSocket,
+  - mendapatkan Session ID,
+  - masuk state `listening`.
+- Namun percakapan setelah wake masih dapat diam/tidak menghasilkan respons.
+- Wake/listening guard 2.4.5 sudah aktif, tetapi belum menyelesaikan akar masalah voice.
+- Belum dipastikan apakah perbedaan metode OTA vs full USB flash ikut memengaruhi kondisi voice.
+
+### NEXT TEST ? OTA VS USB
+
+- Gunakan binary 2.4.5 YANG SAMA, jangan rebuild sebelum A/B test.
+- SHA256 binary 2.4.5:
+  `F851111B3E28649428EBF5018ED73C6478285F7DDF599399EA22489779DE8132`
+- Flash binary tersebut secara langsung melalui USB.
+- Setelah USB flash, tes fisik:
+  `wake "Minji" -> bicara -> STT -> TTS`.
+- Bandingkan perilaku binary identik:
+  - 2.4.5 via OTA
+  - 2.4.5 via USB
+- Jika USB normal tetapi OTA bisu, investigasi state OTA / partition / persistent config.
+- Jika keduanya tetap bisu, fokus kembali ke voice/session pipeline.
+
+### ALARM NEXT
+
+Lifecycle target:
+
+`ACTIVE -> RINGING/TRIGGERED -> COMPLETED`
+
+Alternatif akhir:
+
+- `MISSED`
+- `CANCELLED`
+
+Rencana kontrol:
+- Double-click tombol menjadi kandidat STOP alarm lokal.
+- Stop alarm harus bekerja lokal terlebih dahulu, lalu ACK ke Genius Server.
+- Genius Server tetap menyimpan jadwal, status, dan riwayat alarm.
+
+### GENIUS SERVER RECOVERY 2026-08-22
+
+Commit recovery Debian:
+
+- `e88ed83` ? feat: add remote device log receiver
+- `787a9c1` ? feat: add remote device log console
+- `13d0d73` ? feat: restore Minji console and alarm registry
+
+Catatan:
+- Genius Server saat recovery berada pada detached HEAD.
+- Voice server fix masih lokal/uncommitted:
+  - `server/genius/minji/session.py`
+  - `server/genius/minji/stt.py`
+- Backup voice fix:
+  `~/minji-safe/`
+
+### USB BASELINE 2.4.7 — CONFIRMED HEALTHY
+
+Test date:
+- 2026-08-22
+
+Firmware:
+- Version: `2.4.7`
+- USB flash test: PASS
+- SHA256 `build/xiaozhi.bin`:
+  `2AA8AAAACFBFBA7C461443EC56C79FF1A6FB021C16B3302CD184638F7D381A22`
+
+Voice pipeline CONFIRMED:
+- Wake word `Minji` detected.
+- State transition `connecting -> listening` normal.
+- User speech successfully received.
+- State transition `listening -> speaking` normal.
+- TTS/audio output normal.
+- Conversation successfully continued into the next listening turn.
+
+Physical conversation evidence:
+- `Application: >> Minji`
+- `Application: << Iya, ada yang bisa saya bantu?`
+- `Application: >> selamat menikmati`
+- `Application: << Terima kasih!`
+
+Therefore:
+- Minji is NOT mute on the recovered 2.4.7 USB baseline.
+- Wake -> Listening -> STT -> Server -> TTS -> Listening is CONFIRMED operational.
+
+### XIAOZHI / TENCLASS UPSTREAM — CONFIRMED
+
+Boot log on healthy 2.4.7:
+
+- `Compiled CONFIG_OTA_URL: https://api.tenclass.net/xiaozhi/ota/`
+- `OTA URL actually used: https://api.tenclass.net/xiaozhi/ota/`
+- `MINJI OTA URL: https://api.tenclass.net/xiaozhi/ota/`
+
+Decision:
+- Keep XiaoZhi/Tenclass OTA/upstream path intact on the known-good baseline.
+- Genius Server remains Minji's companion/control/state server.
+- Do NOT replace or remove the XiaoZhi/Tenclass upstream path again without an isolated A/B test.
+
+### REMOTE DEVICE LOG — CONFIRMED RESTORED
+
+Firmware Remote Device Log sender is operational.
+
+Observed:
+- `POST http://192.168.1.89:8000/api/device-log`
+- HTTP `200`
+- Server accepted batches of 8 log entries.
+- Web Console `RECENT DEVICE LOG — MINJI` populated normally.
+- Observed Web Console buffer: `160/5000`.
+
+Recovered/optimized configuration:
+- Remote log queue: 32 entries.
+- Batch size: 8.
+- Tag buffer: 24 bytes.
+- Message buffer: 128 bytes.
+
+### GENIUS TELEMETRY — CONFIRMED
+
+Web Console after 2.4.7 USB boot showed:
+- Device ONLINE.
+- Wi-Fi RSSI telemetry operational.
+- Battery telemetry operational.
+- Alarm registry/UI preserved.
+- Remote Device Log operational.
+
+### BASELINE DECISION
+
+Firmware `2.4.7` is the new KNOWN-GOOD recovery baseline.
+
+Freeze this baseline before further alarm/media/OTA experiments.
+
+Do not reintroduce the firmware-side alarm experiment or the 2.4.5 wake/listening guard until tested independently from this baseline.
